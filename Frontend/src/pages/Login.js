@@ -2,6 +2,7 @@
 import { useContext, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AuthContext from "../AuthContext";
+import { API_BASE } from "../api";
 
 function Login() {
   const [form, setForm] = useState({
