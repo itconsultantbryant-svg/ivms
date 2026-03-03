@@ -29,7 +29,6 @@ services:
   - type: web
     name: inventory-frontend
     runtime: static
-    region: oregon
     rootDir: Frontend
     buildCommand: npm install && npm run build
     staticPublishPath: build
