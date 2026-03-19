@@ -3,4 +3,5 @@
  * No trailing slash; endpoints are appended (e.g. API_BASE + "/login").
  */
 export const API_BASE =
-  process.env.REACT_APP_API_URL || "http://localhost:4000/api";
+  process.env.REACT_APP_API_URL ||
+  (process.env.NODE_ENV === "production" ? "https://inventory-api.onrender.com/api" : "http://localhost:4000/api");

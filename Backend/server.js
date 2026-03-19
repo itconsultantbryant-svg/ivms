@@ -27,22 +27,25 @@ app.use(cors(corsOptions));
 
 async function start() {
   await main();
-  const userCount = await User.count();
-  if (userCount === 0) {
-    try {
-      await User.findOrCreate({
-        where: { email: "admin@example.com" },
-        defaults: {
-          firstName: "Admin",
-          lastName: "User",
-          email: "admin@example.com",
-          password: "admin123",
-        },
-      });
-      console.log("Default login: admin@example.com / admin123");
-    } catch (err) {
-      console.log("Default user setup:", err.message);
+  // Ensure a known admin account exists for deployments (e.g. Render).
+  // This avoids "wrong credentials" when the Render database already contains users.
+  const defaultAdmin = {
+    firstName: "Admin",
+    lastName: "User",
+    email: "admin@example.com",
+    password: "admin123",
+  };
+
+  try {
+    const admin = await User.findOne({ where: { email: defaultAdmin.email } });
+    if (!admin) {
+      await User.create(defaultAdmin);
+    } else if (admin.password !== defaultAdmin.password) {
+      await admin.update({ password: defaultAdmin.password });
     }
+    console.log("Default login: admin@example.com / admin123");
+  } catch (err) {
+    console.log("Default admin setup:", err.message);
   }
 }
 
