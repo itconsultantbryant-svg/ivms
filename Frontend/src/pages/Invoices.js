@@ -4,8 +4,10 @@ import PrintableDocument from "../components/PrintableDocument";
 import InvoiceTemplate from "../components/InvoiceTemplate";
 
 import { API_BASE as API } from "../api";
+import { useLiveRefresh } from "../hooks/useLiveRefresh";
 
 export default function Invoices() {
+  const liveTick = useLiveRefresh();
   const authContext = useContext(AuthContext);
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -17,7 +19,7 @@ export default function Invoices() {
       .then((data) => setInvoices(Array.isArray(data) ? data : []))
       .catch(() => setInvoices([]))
       .finally(() => setLoading(false));
-  }, [authContext.user]);
+  }, [authContext.user, liveTick]);
 
   const refresh = () => {
     setLoading(true);

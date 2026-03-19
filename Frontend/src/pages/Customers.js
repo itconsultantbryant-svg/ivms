@@ -3,6 +3,7 @@ import { Dialog } from "@headlessui/react";
 import AuthContext from "../AuthContext";
 
 import { API_BASE as API } from "../api";
+import { useLiveRefresh } from "../hooks/useLiveRefresh";
 
 function CustomerModal({ customer, onClose, onSave }) {
   const [name, setName] = useState(customer?.name ?? "");
@@ -63,6 +64,7 @@ function CustomerModal({ customer, onClose, onSave }) {
 }
 
 export default function Customers() {
+  const liveTick = useLiveRefresh();
   const authContext = useContext(AuthContext);
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -83,7 +85,8 @@ export default function Customers() {
 
   useEffect(() => {
     fetchCustomers();
-  }, [authContext.user]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- refetch on poll / navigation tick only
+  }, [authContext.user, liveTick]);
 
   const filtered = customers.filter(
     (c) =>

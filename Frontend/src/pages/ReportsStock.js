@@ -3,8 +3,10 @@ import { Link } from "react-router-dom";
 import AuthContext from "../AuthContext";
 
 import { API_BASE as API } from "../api";
+import { useLiveRefresh } from "../hooks/useLiveRefresh";
 
 export default function ReportsStock() {
+  const liveTick = useLiveRefresh();
   const authContext = useContext(AuthContext);
   const [products, setProducts] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
@@ -20,7 +22,7 @@ export default function ReportsStock() {
       .then((data) => setProducts(Array.isArray(data) ? data : []))
       .catch(() => setProducts([]))
       .finally(() => setLoading(false));
-  }, [authContext.user]);
+  }, [authContext.user, liveTick]);
 
   const lowStock = products.filter((p) => (p.stock ?? 0) > 0 && (p.stock ?? 0) < 10);
   const outOfStock = products.filter((p) => (p.stock ?? 0) <= 0);

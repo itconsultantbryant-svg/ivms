@@ -22,7 +22,7 @@ export default function Reports() {
             >
               <r.icon className="h-12 w-12 text-gray-400 mb-3" />
               <span className="text-sm font-medium text-gray-900 text-center">{r.title}</span>
-              <span className="text-xs text-sky-600 mt-1">Details here →</span>
+              <span className="text-xs text-sky-600 mt-1">Open →</span>
             </Link>
           ))}
         </div>

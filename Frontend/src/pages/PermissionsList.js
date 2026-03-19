@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import AuthContext from "../AuthContext";
 
 import { API_BASE as API } from "../api";
+import { useLiveRefresh } from "../hooks/useLiveRefresh";
 
 const MODULES = [
   { id: "dashboard", label: "Dashboard" },
@@ -29,6 +30,7 @@ const MODULES = [
 ];
 
 export default function PermissionsList() {
+  const liveTick = useLiveRefresh();
   const authContext = useContext(AuthContext);
   const [searchParams, setSearchParams] = useSearchParams();
   const roleIdParam = searchParams.get("roleId");
@@ -44,7 +46,7 @@ export default function PermissionsList() {
       .then((r) => r.json())
       .then((data) => setRoles(Array.isArray(data) ? data : []))
       .catch(() => setRoles([]));
-  }, [authContext.user]);
+  }, [authContext.user, liveTick]);
 
   useEffect(() => {
     if (roleIdParam && !selectedRoleId) setSelectedRoleId(roleIdParam);
@@ -72,7 +74,7 @@ export default function PermissionsList() {
         setChecked(map);
       })
       .finally(() => setLoading(false));
-  }, [selectedRoleId]);
+  }, [selectedRoleId, liveTick]);
 
   const handleToggle = (moduleId) => {
     setChecked((prev) => ({ ...prev, [moduleId]: !prev[moduleId] }));

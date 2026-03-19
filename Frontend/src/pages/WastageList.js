@@ -3,6 +3,7 @@ import { Dialog } from "@headlessui/react";
 import AuthContext from "../AuthContext";
 
 import { API_BASE as API } from "../api";
+import { useLiveRefresh } from "../hooks/useLiveRefresh";
 
 function WastageModal({ wastage, products, onClose, onSave }) {
   const [productID, setProductID] = useState(wastage?.productID ?? wastage?.ProductID?.id ?? "");
@@ -68,6 +69,7 @@ function WastageModal({ wastage, products, onClose, onSave }) {
 }
 
 export default function WastageList() {
+  const liveTick = useLiveRefresh();
   const authContext = useContext(AuthContext);
   const [list, setList] = useState([]);
   const [products, setProducts] = useState([]);
@@ -87,7 +89,8 @@ export default function WastageList() {
 
   useEffect(() => {
     fetchList();
-  }, [authContext.user]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- refetch on poll / navigation tick only
+  }, [authContext.user, liveTick]);
 
   useEffect(() => {
     if (!authContext.user) return;
@@ -95,7 +98,7 @@ export default function WastageList() {
       .then((r) => r.json())
       .then((data) => setProducts(Array.isArray(data) ? data : []))
       .catch(() => setProducts([]));
-  }, [authContext.user]);
+  }, [authContext.user, liveTick]);
 
   const handleAdd = (body) => {
     if (!authContext.user) return;

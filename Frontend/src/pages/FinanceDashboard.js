@@ -5,10 +5,11 @@ import AuthContext from "../AuthContext";
 import PrintableDocument from "../components/PrintableDocument";
 
 import { API_BASE } from "../api";
-const REFRESH_INTERVAL_MS = 30000; // 30 seconds real-time refresh
+import { useLiveRefresh } from "../hooks/useLiveRefresh";
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 function FinanceDashboard() {
+  const liveTick = useLiveRefresh();
   const authContext = useContext(AuthContext);
   const [loading, setLoading] = useState(true);
   const [totalRevenue, setTotalRevenue] = useState(0);
@@ -57,9 +58,7 @@ function FinanceDashboard() {
 
   useEffect(() => {
     fetchFinanceData();
-    const interval = setInterval(fetchFinanceData, REFRESH_INTERVAL_MS);
-    return () => clearInterval(interval);
-  }, [fetchFinanceData]);
+  }, [fetchFinanceData, liveTick]);
 
   const netProfit = totalRevenue - totalExpenses;
   const profitMargin = totalRevenue > 0 ? ((netProfit / totalRevenue) * 100).toFixed(1) : "0";

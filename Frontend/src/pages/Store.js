@@ -5,13 +5,12 @@ import AddStore from "../components/AddStore";
 import AuthContext from "../AuthContext";
 
 import { API_BASE as API } from "../api";
-
-const CATEGORIES = ["Electronics", "Groceries", "Wholesale", "SuperMart", "Phones"];
+import { emitLiveRefresh, useLiveRefresh } from "../hooks/useLiveRefresh";
 
 function EditStoreModal({ store, onClose, onSave }) {
   const [form, setForm] = React.useState({
     name: store?.name ?? "",
-    category: store?.category ?? CATEGORIES[0],
+    category: store?.category ?? "",
     address: store?.address ?? "",
     city: store?.city ?? "",
     image: store?.image ?? "",
@@ -35,11 +34,7 @@ function EditStoreModal({ store, onClose, onSave }) {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-              <select name="category" value={form.category} onChange={handleChange} className="w-full rounded border border-gray-300 px-3 py-2 text-sm">
-                {CATEGORIES.map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
+              <input type="text" name="category" value={form.category} onChange={handleChange} placeholder="e.g. Retail, Warehouse" className="w-full rounded border border-gray-300 px-3 py-2 text-sm" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
@@ -61,6 +56,7 @@ function EditStoreModal({ store, onClose, onSave }) {
 }
 
 function Store() {
+  const liveTick = useLiveRefresh();
   const [showModal, setShowModal] = useState(false);
   const [stores, setAllStores] = useState([]);
   const [updatePage, setUpdatePage] = useState(true);
@@ -71,7 +67,8 @@ function Store() {
   useEffect(() => {
     if (!authContext.user) return;
     fetchData();
-  }, [updatePage, authContext.user]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- refetch on poll / navigation / modal update
+  }, [updatePage, authContext.user, liveTick]);
 
   const fetchData = () => {
     if (!authContext.user) return;
@@ -82,7 +79,10 @@ function Store() {
   };
 
   const modalSetting = () => setShowModal(!showModal);
-  const handlePageUpdate = () => setUpdatePage((p) => !p);
+  const handlePageUpdate = () => {
+    emitLiveRefresh();
+    setUpdatePage((p) => !p);
+  };
 
   const deleteStore = (id) => {
     if (!id || !window.confirm("Delete this store?")) return;

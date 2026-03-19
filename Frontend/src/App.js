@@ -34,8 +34,10 @@ import SettingsCompanyProfile from "./pages/SettingsCompanyProfile";
 import SettingsUsers from "./pages/SettingsUsers";
 
 import { API_BASE } from "./api";
+import { useLiveRefresh } from "./hooks/useLiveRefresh";
 
 const App = () => {
+  const liveTick = useLiveRefresh();
   const [user, setUser] = useState("");
   const [permissions, setPermissions] = useState(null);
   const [loader, setLoader] = useState(true);
@@ -72,7 +74,7 @@ const App = () => {
     const onFocus = () => fetchPerms();
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
-  }, [user]);
+  }, [user, liveTick]);
 
   const signin = (newUser, callback) => {
     setUser(newUser);

@@ -4,8 +4,10 @@ import PrintableDocument from "../components/PrintableDocument";
 import ReceiptTemplate from "../components/ReceiptTemplate";
 
 import { API_BASE as API } from "../api";
+import { useLiveRefresh } from "../hooks/useLiveRefresh";
 
 export default function Receipts() {
+  const liveTick = useLiveRefresh();
   const authContext = useContext(AuthContext);
   const [receipts, setReceipts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -17,7 +19,7 @@ export default function Receipts() {
       .then((data) => setReceipts(Array.isArray(data) ? data : []))
       .catch(() => setReceipts([]))
       .finally(() => setLoading(false));
-  }, [authContext.user]);
+  }, [authContext.user, liveTick]);
 
   const isSelected = (rec) => selectedReceipt && (selectedReceipt._id === rec._id || selectedReceipt.id === rec.id);
 

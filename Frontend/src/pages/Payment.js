@@ -3,8 +3,10 @@ import { Link } from "react-router-dom";
 import AuthContext from "../AuthContext";
 
 import { API_BASE as API } from "../api";
+import { useLiveRefresh } from "../hooks/useLiveRefresh";
 
 export default function Payment() {
+  const liveTick = useLiveRefresh();
   const authContext = useContext(AuthContext);
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -24,7 +26,7 @@ export default function Payment() {
       })
       .catch(() => setPayments([]))
       .finally(() => setLoading(false));
-  }, [authContext.user]);
+  }, [authContext.user, liveTick]);
 
   const filtered = payments.filter((p) => !search || String(p.ref).toLowerCase().includes(search.toLowerCase()));
 
@@ -32,8 +34,14 @@ export default function Payment() {
     <div className="col-span-12 lg:col-span-10 p-4 lg:p-6">
       <div className="mx-auto max-w-6xl">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-          <h1 className="text-xl font-bold text-gray-900">Payment</h1>
-          <button className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">+ Add Payment</button>
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">Payment activity</h1>
+            <p className="text-sm text-gray-500 mt-1">Live view of sales and purchases (source records). Record new activity under Sales or Purchases.</p>
+          </div>
+          <div className="flex gap-2">
+            <Link to="/sales" className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">Sales</Link>
+            <Link to="/purchase-details" className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Purchases</Link>
+          </div>
         </div>
         <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 p-4">
@@ -49,14 +57,14 @@ export default function Payment() {
                   <th className="px-4 py-3 text-left font-medium text-gray-700">Payment For</th>
                   <th className="px-4 py-3 text-right font-medium text-gray-700">Amount</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-700">Type</th>
-                  <th className="px-4 py-3 text-center font-medium text-gray-700">Action</th>
+                  <th className="px-4 py-3 text-center font-medium text-gray-700">Source</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {loading ? (
                   <tr><td colSpan="6" className="px-4 py-8 text-center text-gray-500">Loading...</td></tr>
                 ) : filtered.length === 0 ? (
-                  <tr><td colSpan="6" className="px-4 py-8 text-center text-gray-500">No payment records. Payments are tracked with <Link to="/sales" className="text-blue-600 hover:underline">Sales</Link> and <Link to="/purchase-details" className="text-blue-600 hover:underline">Purchases</Link>.</td></tr>
+                  <tr><td colSpan="6" className="px-4 py-8 text-center text-gray-500">No records yet. Add <Link to="/sales" className="text-blue-600 hover:underline">sales</Link> or <Link to="/purchase-details" className="text-blue-600 hover:underline">purchases</Link>.</td></tr>
                 ) : (
                   filtered.slice(0, 20).map((p, i) => (
                     <tr key={`${p.type}-${p.ref}-${i}`} className="hover:bg-gray-50/50">
@@ -66,8 +74,11 @@ export default function Payment() {
                       <td className="px-4 py-2 text-right font-medium">${Number(p.amount || 0).toFixed(2)}</td>
                       <td className="px-4 py-2">{p.type}</td>
                       <td className="px-4 py-2 text-center">
-                        <span className="text-blue-600 cursor-pointer hover:underline mr-2">Edit</span>
-                        <span className="text-red-600 cursor-pointer hover:underline">Delete</span>
+                        {p.type === "Sale" ? (
+                          <Link to="/sales" className="text-blue-600 hover:underline text-sm">Open sales</Link>
+                        ) : (
+                          <Link to="/purchase-details" className="text-blue-600 hover:underline text-sm">Open purchases</Link>
+                        )}
                       </td>
                     </tr>
                   ))

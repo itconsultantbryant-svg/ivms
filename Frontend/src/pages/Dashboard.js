@@ -5,8 +5,12 @@ import AuthContext from "../AuthContext";
 import { API_BASE } from "../api";
 import { Doughnut } from "react-chartjs-2";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
+import { useLiveRefresh } from "../hooks/useLiveRefresh";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
+
+const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const emptyMonthly = () => Array(12).fill(0);
 
 const CHART_COLORS = [
   "rgba(255, 99, 132, 0.8)",
@@ -19,6 +23,7 @@ const CHART_COLORS = [
 const CHART_BORDERS = ["rgba(255, 99, 132, 1)", "rgba(54, 162, 235, 1)", "rgba(255, 206, 86, 1)", "rgba(75, 192, 192, 1)", "rgba(153, 102, 255, 1)", "rgba(255, 159, 64, 1)"];
 
 function Dashboard() {
+  const liveTick = useLiveRefresh();
   const [saleAmount, setSaleAmount] = useState("");
   const [purchaseAmount, setPurchaseAmount] = useState("");
   const [stores, setStores] = useState([]);
@@ -30,41 +35,24 @@ function Dashboard() {
         id: "basic-bar",
       },
       xaxis: {
-        categories: [
-          "Jan",
-          "Feb",
-          "Mar",
-          "Apr",
-          "May",
-          "Jun",
-          "Jul",
-          "Aug",
-          "Sep",
-          "Oct",
-          "Nov",
-          "Dec",
-        ],
+        categories: MONTH_LABELS,
       },
     },
     series: [
       {
-        name: "series",
-        data: [10, 20, 40, 50, 60, 20, 10, 35, 45, 70, 25, 70],
+        name: "Monthly Sales Amount",
+        data: emptyMonthly(),
       },
     ],
   });
 
-  // Update Chart Data
   const updateChartData = (salesData) => {
-    setChart({
-      ...chart,
-      series: [
-        {
-          name: "Monthly Sales Amount",
-          data: [...salesData],
-        },
-      ],
-    });
+    const data =
+      Array.isArray(salesData) && salesData.length === 12 ? salesData : emptyMonthly();
+    setChart((prev) => ({
+      ...prev,
+      series: [{ name: "Monthly Sales Amount", data: [...data] }],
+    }));
   };
 
   const authContext = useContext(AuthContext);
@@ -90,10 +78,8 @@ function Dashboard() {
       fetchMonthlySalesData();
     };
     fetchAll();
-    const onFocus = () => fetchAll();
-    window.addEventListener("focus", onFocus);
-    return () => window.removeEventListener("focus", onFocus);
-  }, [authContext.user]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- refetch on poll / navigation tick only
+  }, [authContext.user, liveTick]);
 
   // Fetching total sales amount
   const fetchTotalSaleAmount = () => {
@@ -147,12 +133,12 @@ function Dashboard() {
     .slice(0, 6)
     .map((p) => p.stock ?? 0);
   const doughnutData = {
-    labels: doughnutLabels.length ? doughnutLabels : ["No products"],
+    labels: doughnutLabels.length ? doughnutLabels : ["No products yet"],
     datasets: [
       {
         label: "Stock",
-        data: doughnutValues.length ? doughnutValues : [1],
-        backgroundColor: doughnutLabels.length ? CHART_COLORS.slice(0, doughnutLabels.length) : ["rgba(200,200,200,0.5)"],
+        data: doughnutValues.length ? doughnutValues : [0],
+        backgroundColor: doughnutLabels.length ? CHART_COLORS.slice(0, doughnutLabels.length) : ["rgba(200,200,200,0.4)"],
         borderColor: doughnutLabels.length ? CHART_BORDERS.slice(0, doughnutLabels.length) : ["#ccc"],
         borderWidth: 1,
       },

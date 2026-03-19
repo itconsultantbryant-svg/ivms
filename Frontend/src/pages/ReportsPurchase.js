@@ -4,8 +4,10 @@ import AuthContext from "../AuthContext";
 import PrintableDocument from "../components/PrintableDocument";
 
 import { API_BASE as API } from "../api";
+import { useLiveRefresh } from "../hooks/useLiveRefresh";
 
 export default function ReportsPurchase() {
+  const liveTick = useLiveRefresh();
   const authContext = useContext(AuthContext);
   const [purchases, setPurchases] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -21,7 +23,7 @@ export default function ReportsPurchase() {
       .then((data) => setPurchases(Array.isArray(data) ? data : []))
       .catch(() => setPurchases([]))
       .finally(() => setLoading(false));
-  }, [authContext.user]);
+  }, [authContext.user, liveTick]);
 
   const total = purchases.reduce((s, x) => s + Number(x.totalPurchaseAmount ?? x.TotalPurchaseAmount ?? 0), 0);
 

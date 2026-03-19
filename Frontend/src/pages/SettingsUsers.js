@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext } from "react";
 import AuthContext from "../AuthContext";
 
 import { API_BASE as API } from "../api";
+import { useLiveRefresh } from "../hooks/useLiveRefresh";
 
 const defaultCreateForm = {
   firstName: "",
@@ -13,6 +14,7 @@ const defaultCreateForm = {
 };
 
 export default function SettingsUsers() {
+  const liveTick = useLiveRefresh();
   const authContext = useContext(AuthContext);
   const [list, setList] = useState([]);
   const [roles, setRoles] = useState([]);
@@ -34,7 +36,7 @@ export default function SettingsUsers() {
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [liveTick]);
 
   useEffect(() => {
     if (!authContext?.user) return;
@@ -42,7 +44,7 @@ export default function SettingsUsers() {
       .then((r) => r.json())
       .then((data) => setRoles(Array.isArray(data) ? data : []))
       .catch(() => setRoles([]));
-  }, [authContext?.user]);
+  }, [authContext?.user, liveTick]);
 
   useEffect(() => {
     if (list.length === 0) return;

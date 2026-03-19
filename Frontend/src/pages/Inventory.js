@@ -3,8 +3,10 @@ import AddProduct from "../components/AddProduct";
 import UpdateProduct from "../components/UpdateProduct";
 import AuthContext from "../AuthContext";
 import { API_BASE } from "../api";
+import { emitLiveRefresh, useLiveRefresh } from "../hooks/useLiveRefresh";
 
 function Inventory() {
+  const liveTick = useLiveRefresh();
   const [showProductModal, setShowProductModal] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
@@ -14,14 +16,19 @@ function Inventory() {
   const [searchTerm, setSearchTerm] = useState();
   const [updatePage, setUpdatePage] = useState(true);
   const [stores, setAllStores] = useState([]);
+  const [totalRevenue, setTotalRevenue] = useState(0);
+  const [totalCost, setTotalCost] = useState(0);
+  const [topSellingUnits, setTopSellingUnits] = useState(0);
 
   const authContext = useContext(AuthContext);
 
   useEffect(() => {
     if (!authContext.user) return;
     fetchProductsData();
-    fetchSalesData();
-  }, [authContext.user, updatePage]);
+    fetchStoresData();
+    fetchInventorySummary();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- refetch on poll / navigation / modal update
+  }, [authContext.user, updatePage, liveTick]);
 
   // Fetching Data of All Products
   const fetchProductsData = () => {
@@ -42,12 +49,44 @@ function Inventory() {
   };
 
   // Fetching all stores data
-  const fetchSalesData = () => {
+  const fetchStoresData = () => {
     if (!authContext.user) return;
     fetch(`${API_BASE}/store/get/${authContext.user}`)
       .then((response) => response.json())
       .then((data) => setAllStores(Array.isArray(data) ? data : []))
       .catch(() => setAllStores([]));
+  };
+
+  const fetchInventorySummary = () => {
+    if (!authContext.user) return;
+
+    Promise.all([
+      fetch(`${API_BASE}/sales/get/${authContext.user}/totalsaleamount`).then((r) => r.json()),
+      fetch(`${API_BASE}/purchase/get/${authContext.user}/totalpurchaseamount`).then((r) => r.json()),
+      fetch(`${API_BASE}/sales/get/${authContext.user}`).then((r) => r.json()),
+    ])
+      .then(([revenueRes, costRes, salesList]) => {
+        setTotalRevenue(Number(revenueRes?.totalSaleAmount ?? 0));
+        setTotalCost(Number(costRes?.totalPurchaseAmount ?? 0));
+
+        const rows = Array.isArray(salesList) ? salesList : [];
+        // "Top selling" = product with highest total units sold.
+        const unitsByProduct = rows.reduce((acc, s) => {
+          const productKey = s?.productID ?? s?.ProductID?.id ?? s?.ProductID?._id;
+          const units = Number(s?.stockSold ?? 0);
+          if (!productKey) return acc;
+          acc[productKey] = (acc[productKey] || 0) + units;
+          return acc;
+        }, {});
+
+        const topUnits = Math.max(0, ...Object.values(unitsByProduct));
+        setTopSellingUnits(topUnits);
+      })
+      .catch(() => {
+        setTotalRevenue(0);
+        setTotalCost(0);
+        setTopSellingUnits(0);
+      });
   };
 
   // Modal for Product ADD
@@ -79,7 +118,8 @@ function Inventory() {
 
   // Handle Page Update
   const handlePageUpdate = () => {
-    setUpdatePage(!updatePage);
+    emitLiveRefresh();
+    setUpdatePage((p) => !p);
   };
 
   // Handle Search Term
@@ -107,7 +147,7 @@ function Inventory() {
                 {products.length}
               </span>
               <span className="font-thin text-gray-400 text-xs">
-                Last 7 days
+                Total inventory (live)
               </span>
             </div>
             <div className="flex flex-col gap-3 p-10   w-full  md:w-3/12 sm:border-y-2  md:border-x-2 md:border-y-0">
@@ -120,15 +160,15 @@ function Inventory() {
                     {stores.length}
                   </span>
                   <span className="font-thin text-gray-400 text-xs">
-                    Last 7 days
+                    Active store locations (live)
                   </span>
                 </div>
                 <div className="flex flex-col">
                   <span className="font-semibold text-gray-600 text-base">
-                    $2000
+                    ${Number(totalRevenue || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                   <span className="font-thin text-gray-400 text-xs">
-                    Revenue
+                    Total Revenue (all time)
                   </span>
                 </div>
               </div>
@@ -140,15 +180,15 @@ function Inventory() {
               <div className="flex gap-8">
                 <div className="flex flex-col">
                   <span className="font-semibold text-gray-600 text-base">
-                    5
+                  {topSellingUnits}
                   </span>
                   <span className="font-thin text-gray-400 text-xs">
-                    Last 7 days
+                  Units sold (top product)
                   </span>
                 </div>
                 <div className="flex flex-col">
                   <span className="font-semibold text-gray-600 text-base">
-                    $1500
+                  ${Number(totalCost || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                   <span className="font-thin text-gray-400 text-xs">Cost</span>
                 </div>

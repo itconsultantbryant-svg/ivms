@@ -5,8 +5,10 @@ import PrintableDocument from "../components/PrintableDocument";
 import InvoiceTemplate from "../components/InvoiceTemplate";
 
 import { API_BASE as API } from "../api";
+import { emitLiveRefresh, useLiveRefresh } from "../hooks/useLiveRefresh";
 
 function Sales() {
+  const liveTick = useLiveRefresh();
   const [showSaleModal, setShowSaleModal] = useState(false);
   const [sales, setAllSalesData] = useState([]);
   const [products, setAllProducts] = useState([]);
@@ -22,7 +24,8 @@ function Sales() {
     fetchSalesData();
     fetchProductsData();
     fetchStoresData();
-  }, [updatePage, authContext.user]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- refetch on poll / navigation / modal update
+  }, [updatePage, authContext.user, liveTick]);
 
   const fetchSalesData = () => {
     if (!authContext.user) return;
@@ -49,7 +52,10 @@ function Sales() {
   };
 
   const addSaleModalSetting = () => setShowSaleModal(!showSaleModal);
-  const handlePageUpdate = () => setUpdatePage((p) => !p);
+  const handlePageUpdate = () => {
+    emitLiveRefresh();
+    setUpdatePage((p) => !p);
+  };
 
   const deleteSale = (id) => {
     if (!window.confirm("Delete this sale? Stock will be restored.")) return;

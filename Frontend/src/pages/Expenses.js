@@ -3,24 +3,23 @@ import { Dialog } from "@headlessui/react";
 import AuthContext from "../AuthContext";
 
 import { API_BASE as API } from "../api";
-
-const EXPENSE_CATEGORIES = ["Rent", "Utilities", "Salaries", "Supplies", "Marketing", "Other"];
+import { useLiveRefresh } from "../hooks/useLiveRefresh";
 
 function ExpenseModal({ expense, onClose, onSave }) {
   const [date, setDate] = useState(expense?.date ?? new Date().toISOString().slice(0, 10));
-  const [category, setCategory] = useState(expense?.category ?? EXPENSE_CATEGORIES[0]);
+  const [category, setCategory] = useState(expense?.category ?? "");
   const [amount, setAmount] = useState(expense?.amount ?? "");
   const [note, setNote] = useState(expense?.note ?? "");
 
   useEffect(() => {
     if (expense) {
       setDate(expense.date ?? new Date().toISOString().slice(0, 10));
-      setCategory(expense.category ?? EXPENSE_CATEGORIES[0]);
+      setCategory(expense.category ?? "");
       setAmount(expense.amount ?? "");
       setNote(expense.note ?? "");
     } else {
       setDate(new Date().toISOString().slice(0, 10));
-      setCategory(EXPENSE_CATEGORIES[0]);
+      setCategory("");
       setAmount("");
       setNote("");
     }
@@ -43,11 +42,7 @@ function ExpenseModal({ expense, onClose, onSave }) {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-              <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full rounded border border-gray-300 px-3 py-2 text-sm">
-                {EXPENSE_CATEGORIES.map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
+              <input type="text" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="e.g. Rent, Utilities" className="w-full rounded border border-gray-300 px-3 py-2 text-sm" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Amount ($)</label>
@@ -69,6 +64,7 @@ function ExpenseModal({ expense, onClose, onSave }) {
 }
 
 export default function Expenses() {
+  const liveTick = useLiveRefresh();
   const authContext = useContext(AuthContext);
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -88,7 +84,8 @@ export default function Expenses() {
 
   useEffect(() => {
     fetchExpenses();
-  }, [authContext.user]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- refetch on poll / navigation tick only
+  }, [authContext.user, liveTick]);
 
   const filtered = expenses.filter((e) => !search || (e.note && e.note.toLowerCase().includes(search.toLowerCase())));
 

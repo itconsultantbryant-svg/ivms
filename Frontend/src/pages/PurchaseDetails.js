@@ -4,8 +4,10 @@ import AuthContext from "../AuthContext";
 import PrintableDocument from "../components/PrintableDocument";
 import ReceiptTemplate from "../components/ReceiptTemplate";
 import { API_BASE } from "../api";
+import { emitLiveRefresh, useLiveRefresh } from "../hooks/useLiveRefresh";
 
 function PurchaseDetails() {
+  const liveTick = useLiveRefresh();
   const [showPurchaseModal, setPurchaseModal] = useState(false);
   const [purchase, setAllPurchaseData] = useState([]);
   const [products, setAllProducts] = useState([]);
@@ -18,7 +20,8 @@ function PurchaseDetails() {
   useEffect(() => {
     fetchPurchaseData();
     fetchProductsData();
-  }, [updatePage, authContext.user]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- refetch on poll / navigation / modal update
+  }, [updatePage, authContext.user, liveTick]);
 
   // Fetching Data of All Purchase items
   const fetchPurchaseData = () => {
@@ -44,6 +47,7 @@ function PurchaseDetails() {
   
   // Handle Page Update
   const handlePageUpdate = () => {
+    emitLiveRefresh();
     setUpdatePage(!updatePage);
   };
 

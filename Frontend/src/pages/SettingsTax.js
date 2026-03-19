@@ -3,6 +3,7 @@ import { Dialog } from "@headlessui/react";
 import AuthContext from "../AuthContext";
 
 import { API_BASE as API } from "../api";
+import { useLiveRefresh } from "../hooks/useLiveRefresh";
 
 function AddEditTaxModal({ tax, onClose, onSave }) {
   const [name, setName] = useState(tax?.name ?? "");
@@ -76,6 +77,7 @@ function AddEditTaxModal({ tax, onClose, onSave }) {
 }
 
 export default function SettingsTax() {
+  const liveTick = useLiveRefresh();
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -98,7 +100,8 @@ export default function SettingsTax() {
       return;
     }
     fetchList();
-  }, [authContext.user]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- refetch on poll / navigation tick only
+  }, [authContext.user, liveTick]);
 
   const handleAdd = (body) => {
     if (!authContext.user) return;

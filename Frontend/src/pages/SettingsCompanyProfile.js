@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext } from "react";
 import AuthContext from "../AuthContext";
 
 import { API_BASE as API } from "../api";
+import { useLiveRefresh } from "../hooks/useLiveRefresh";
 
 const defaultProfile = {
   companyName: "",
@@ -27,6 +28,7 @@ const defaultProfile = {
 };
 
 export default function SettingsCompanyProfile() {
+  const liveTick = useLiveRefresh();
   const [form, setForm] = useState(defaultProfile);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -69,7 +71,7 @@ export default function SettingsCompanyProfile() {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [authContext.user]);
+  }, [authContext.user, liveTick]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;

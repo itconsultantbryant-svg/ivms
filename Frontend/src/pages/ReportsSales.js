@@ -4,8 +4,10 @@ import AuthContext from "../AuthContext";
 import PrintableDocument from "../components/PrintableDocument";
 
 import { API_BASE as API } from "../api";
+import { useLiveRefresh } from "../hooks/useLiveRefresh";
 
 export default function ReportsSales() {
+  const liveTick = useLiveRefresh();
   const authContext = useContext(AuthContext);
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
@@ -27,7 +29,8 @@ export default function ReportsSales() {
 
   useEffect(() => {
     loadSales();
-  }, [authContext.user]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- refetch on poll / navigation tick only
+  }, [authContext.user, liveTick]);
 
   const filtered = sales.filter((s) => {
     const d = s.saleDate ?? s.SaleDate ?? "";

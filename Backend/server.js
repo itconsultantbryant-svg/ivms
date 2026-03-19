@@ -170,8 +170,8 @@ app.delete("/api/user-roles/:userID/:roleID", async (req, res) => {
   }
 });
 
-app.get("/testget", (req, res) => {
-  res.json({ message: "Backend running with SQLite/PostgreSQL" });
+app.get("/api/health", (req, res) => {
+  res.json({ ok: true });
 });
 
 start()

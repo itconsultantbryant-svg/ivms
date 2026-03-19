@@ -3,11 +3,14 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
+import { LiveRefreshProvider } from './hooks/useLiveRefresh';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <App />
+    <LiveRefreshProvider>
+      <App />
+    </LiveRefreshProvider>
   </React.StrictMode>
 );
 

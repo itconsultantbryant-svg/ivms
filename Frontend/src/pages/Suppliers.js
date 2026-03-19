@@ -3,6 +3,7 @@ import { Dialog } from "@headlessui/react";
 import AuthContext from "../AuthContext";
 
 import { API_BASE as API } from "../api";
+import { useLiveRefresh } from "../hooks/useLiveRefresh";
 
 function SupplierModal({ supplier, onClose, onSave }) {
   const [code, setCode] = useState(supplier?.code ?? "");
@@ -70,6 +71,7 @@ function SupplierModal({ supplier, onClose, onSave }) {
 }
 
 export default function Suppliers() {
+  const liveTick = useLiveRefresh();
   const authContext = useContext(AuthContext);
   const [suppliers, setSuppliers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -90,7 +92,8 @@ export default function Suppliers() {
 
   useEffect(() => {
     fetchSuppliers();
-  }, [authContext.user]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- refetch on poll / navigation tick only
+  }, [authContext.user, liveTick]);
 
   const filtered = suppliers.filter(
     (s) => !search || (s.name && s.name.toLowerCase().includes(search.toLowerCase())) || (s.email && s.email.toLowerCase().includes(search.toLowerCase()))

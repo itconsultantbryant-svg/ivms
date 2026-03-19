@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import AuthContext from "../AuthContext";
 
 import { API_BASE as API } from "../api";
+import { useLiveRefresh } from "../hooks/useLiveRefresh";
 
 function RoleModal({ role, onClose, onSave }) {
   const [name, setName] = useState(role?.name ?? "");
@@ -45,6 +46,7 @@ function RoleModal({ role, onClose, onSave }) {
 }
 
 export default function Permissions() {
+  const liveTick = useLiveRefresh();
   const authContext = useContext(AuthContext);
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -63,7 +65,8 @@ export default function Permissions() {
 
   useEffect(() => {
     fetchList();
-  }, [authContext.user]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- refetch on poll / navigation tick only
+  }, [authContext.user, liveTick]);
 
   const handleAdd = (body) => {
     if (!authContext.user) return;

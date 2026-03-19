@@ -3,6 +3,7 @@ import { Dialog } from "@headlessui/react";
 import AuthContext from "../AuthContext";
 
 import { API_BASE as API } from "../api";
+import { useLiveRefresh } from "../hooks/useLiveRefresh";
 
 function CategoryModal({ category, onClose, onSave }) {
   const [name, setName] = useState(category?.name ?? "");
@@ -34,6 +35,7 @@ function CategoryModal({ category, onClose, onSave }) {
 }
 
 export default function Categories() {
+  const liveTick = useLiveRefresh();
   const authContext = useContext(AuthContext);
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -52,7 +54,8 @@ export default function Categories() {
 
   useEffect(() => {
     fetchList();
-  }, [authContext.user]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- refetch on poll / navigation tick only
+  }, [authContext.user, liveTick]);
 
   const handleAdd = (body) => {
     if (!authContext.user) return;
