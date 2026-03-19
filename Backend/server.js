@@ -19,11 +19,14 @@ const app = express();
 const PORT = process.env.PORT || 4000;
 
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || true,
+  // Allow Render frontend to call this backend cross-origin.
+  // Using `true` reflects the request Origin and avoids env mismatch issues.
+  origin: true,
   credentials: true,
 };
-app.use(express.json());
 app.use(cors(corsOptions));
+app.use(express.json());
+app.options("*", cors(corsOptions));
 
 async function start() {
   await main();
@@ -63,9 +66,45 @@ app.use("/api/categories", categoryRoute);
 app.use("/api/wastage", wastageRoute);
 app.use("/api/roles", roleRoute);
 
+// Compatibility: also mount routes without the `/api` prefix.
+// This prevents production 404s when the frontend API base URL is misconfigured.
+app.use("/store", storeRoute);
+app.use("/product", productRoute);
+app.use("/purchase", purchaseRoute);
+app.use("/sales", salesRoute);
+app.use("/tax", taxRoute);
+app.use("/unit", unitRoute);
+app.use("/company-profile", companyProfileRoute);
+app.use("/customers", customerRoute);
+app.use("/suppliers", supplierRoute);
+app.use("/expenses", expenseRoute);
+app.use("/categories", categoryRoute);
+app.use("/wastage", wastageRoute);
+app.use("/roles", roleRoute);
+
 let userAuthCheck = null;
 
 app.post("/api/login", async (req, res) => {
+  try {
+    const user = await User.findOne({
+      where: { email: req.body.email, password: req.body.password },
+    });
+    if (user) {
+      const u = user.get({ plain: true });
+      res.json({ ...u, _id: u.id });
+      userAuthCheck = u;
+    } else {
+      userAuthCheck = null;
+      res.status(401).json({ error: "Invalid credentials" });
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message || "Server error" });
+  }
+});
+
+// Compatibility route: allow POST `/login` (without `/api` prefix).
+app.post("/login", async (req, res) => {
   try {
     const user = await User.findOne({
       where: { email: req.body.email, password: req.body.password },
@@ -89,7 +128,32 @@ app.get("/api/login", (req, res) => {
   res.json({ ...userAuthCheck, _id: userAuthCheck.id });
 });
 
+// Compatibility route: allow GET `/login` (without `/api` prefix).
+app.get("/login", (req, res) => {
+  if (!userAuthCheck) return res.status(401).json(null);
+  res.json({ ...userAuthCheck, _id: userAuthCheck.id });
+});
+
 app.post("/api/register", async (req, res) => {
+  try {
+    const user = await User.create({
+      firstName: req.body.firstName,
+      lastName: req.body.lastName,
+      email: req.body.email,
+      password: req.body.password,
+      phoneNumber: req.body.phoneNumber || null,
+      imageUrl: req.body.imageUrl || null,
+    });
+    const u = user.get({ plain: true });
+    res.status(200).json({ ...u, _id: u.id });
+  } catch (err) {
+    console.error("Signup:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Compatibility route: allow POST `/register` (without `/api` prefix).
+app.post("/register", async (req, res) => {
   try {
     const user = await User.create({
       firstName: req.body.firstName,
@@ -116,6 +180,16 @@ app.get("/api/users", async (req, res) => {
   }
 });
 
+// Compatibility route (in case frontend API base URL is without `/api`).
+app.get("/users", async (req, res) => {
+  try {
+    const list = await User.findAll({ order: [["id", "DESC"]], attributes: { exclude: ["password"] } });
+    res.json(list.map((u) => ({ ...u.get({ plain: true }), _id: u.id })));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get("/api/users/:userID/permissions", async (req, res) => {
   try {
     const userID = parseInt(req.params.userID, 10);
@@ -132,6 +206,23 @@ app.get("/api/users/:userID/permissions", async (req, res) => {
   }
 });
 
+// Compatibility route (in case frontend API base URL is without `/api`).
+app.get("/users/:userID/permissions", async (req, res) => {
+  try {
+    const userID = parseInt(req.params.userID, 10);
+    if (!userID) return res.status(400).json({ error: "Invalid userID" });
+    const userRoles = await UserRole.findAll({ where: { userID }, attributes: ["roleID"] });
+    const roleIDs = userRoles.map((ur) => ur.roleID);
+    if (roleIDs.length === 0) return res.json({ modules: null });
+    const perms = await RolePermission.findAll({ where: { roleID: roleIDs }, attributes: ["module"] });
+    const modules = [...new Set(perms.map((p) => p.module))];
+    res.json({ modules });
+  } catch (err) {
+    console.error("GET /users/:userID/permissions:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get("/api/users/:userID/roles", async (req, res) => {
   try {
     const userID = parseInt(req.params.userID, 10);
@@ -143,6 +234,22 @@ app.get("/api/users/:userID/roles", async (req, res) => {
     res.json(roles.map((r) => ({ _id: r.id, id: r.id, name: r.name })));
   } catch (err) {
     console.error("GET /api/users/:userID/roles:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Compatibility route (in case frontend API base URL is without `/api`).
+app.get("/users/:userID/roles", async (req, res) => {
+  try {
+    const userID = parseInt(req.params.userID, 10);
+    if (!userID) return res.status(400).json({ error: "Invalid userID" });
+    const userRoles = await UserRole.findAll({ where: { userID }, attributes: ["roleID"] });
+    const roleIDs = userRoles.map((ur) => ur.roleID).filter(Boolean);
+    if (roleIDs.length === 0) return res.json([]);
+    const roles = await Role.findAll({ where: { id: roleIDs }, attributes: ["id", "name"] });
+    res.json(roles.map((r) => ({ _id: r.id, id: r.id, name: r.name })));
+  } catch (err) {
+    console.error("GET /users/:userID/roles:", err.message);
     res.status(500).json({ error: err.message });
   }
 });
