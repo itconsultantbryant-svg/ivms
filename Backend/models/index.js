@@ -5,8 +5,10 @@ let sequelize;
 if (config.dialect === "sqlite") {
   sequelize = new Sequelize({ dialect: "sqlite", storage: config.storage, logging: config.logging });
 } else {
-  const dbUrl = process.env.DATABASE_URL || "postgres://postgres:postgres@localhost:5432/inventory";
-  sequelize = new Sequelize(dbUrl, { logging: config.logging });
+  sequelize = new Sequelize(config.url, {
+    logging: config.logging,
+    dialectOptions: config.dialectOptions,
+  });
 }
 
 const User = require("./User")(sequelize);
