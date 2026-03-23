@@ -35,7 +35,6 @@ function UploadImage({ uploadImage }) {
         id="fileInput"
         className="hidden"
         accept=".png, .jpeg, .jpg"
-        required
         onChange={handleFileInputChange}
       />
     </div>
