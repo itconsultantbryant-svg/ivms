@@ -47,7 +47,13 @@ const App = () => {
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
-        const id = parsed._id ?? parsed.id;
+        let id = parsed._id ?? parsed.id;
+        // Local fallback users may have non-backend IDs; normalize to admin ID
+        // to avoid repeated 404s for routes like /users/:id/*.
+        if (parsed?.source === "local-fallback" && Number(id) > 9999999) {
+          id = 1;
+          localStorage.setItem("user", JSON.stringify({ ...parsed, _id: 1, id: 1 }));
+        }
         if (id != null) setUser(String(id));
       } catch (_) {
         setUser("");

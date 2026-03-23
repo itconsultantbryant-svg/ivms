@@ -46,9 +46,10 @@ function Login() {
         } else {
           const local = loginWithLocalAuth(form.email, form.password);
           if (local) {
+            const localSession = { ...local, _id: 1, id: 1 };
             alert("Logged in (local mode)");
-            localStorage.setItem("user", JSON.stringify(local));
-            authContext.signin(local._id ?? local.id, () => navigate("/"));
+            localStorage.setItem("user", JSON.stringify(localSession));
+            authContext.signin(1, () => navigate("/"));
             return;
           }
           alert(data?.error || "Wrong credentials. Try again.");
@@ -57,9 +58,10 @@ function Login() {
       .catch(() => {
         const local = loginWithLocalAuth(form.email, form.password);
         if (local) {
+          const localSession = { ...local, _id: 1, id: 1 };
           alert("Logged in (local mode)");
-          localStorage.setItem("user", JSON.stringify(local));
-          authContext.signin(local._id ?? local.id, () => navigate("/"));
+          localStorage.setItem("user", JSON.stringify(localSession));
+          authContext.signin(1, () => navigate("/"));
           return;
         }
         alert("Login failed. Check API URL or credentials.");
