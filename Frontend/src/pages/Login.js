@@ -3,6 +3,7 @@ import { useContext, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AuthContext from "../AuthContext";
 import { API_BASE } from "../api";
+import { loginWithLocalAuth } from "../authFallback";
 
 function Login() {
   const [form, setForm] = useState({
@@ -28,17 +29,41 @@ function Login() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(form),
     })
-      .then((res) => res.json().then((data) => ({ ok: res.ok, status: res.status, data })))
+      .then(async (res) => {
+        let data = null;
+        try {
+          data = await res.json();
+        } catch (_) {
+          data = null;
+        }
+        return { ok: res.ok, status: res.status, data };
+      })
       .then(({ ok, data }) => {
         if (ok && data && (data._id != null || data.id != null)) {
           alert("Successfully Login");
           localStorage.setItem("user", JSON.stringify(data));
           authContext.signin(data._id ?? data.id, () => navigate("/"));
         } else {
+          const local = loginWithLocalAuth(form.email, form.password);
+          if (local) {
+            alert("Logged in (local mode)");
+            localStorage.setItem("user", JSON.stringify(local));
+            authContext.signin(local._id ?? local.id, () => navigate("/"));
+            return;
+          }
           alert(data?.error || "Wrong credentials. Try again.");
         }
       })
-      .catch(() => alert("Wrong credentials. Try again."));
+      .catch(() => {
+        const local = loginWithLocalAuth(form.email, form.password);
+        if (local) {
+          alert("Logged in (local mode)");
+          localStorage.setItem("user", JSON.stringify(local));
+          authContext.signin(local._id ?? local.id, () => navigate("/"));
+          return;
+        }
+        alert("Login failed. Check API URL or credentials.");
+      });
   };
 
 

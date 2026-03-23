@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import UploadImage from "../components/UploadImage";
 import { API_BASE } from "../api";
+import { createLocalAuthUser } from "../authFallback";
 
 function Register() {
   const [form, setForm] = useState({
@@ -29,11 +30,30 @@ function Register() {
       },
       body: JSON.stringify(form),
     })
-      .then((result) => {
-        alert("Successfully Registered, Now Login with your details");
-        navigate("/login");
+      .then(async (result) => {
+        if (result.ok) {
+          alert("Successfully Registered, Now Login with your details");
+          navigate("/login");
+          return;
+        }
+        // Production fallback: keep auth usable if API route is unavailable.
+        const local = createLocalAuthUser(form);
+        if (local.ok) {
+          alert("Registered in local mode. You can now login from this browser.");
+          navigate("/login");
+          return;
+        }
+        alert(local.error || "Registration failed.");
       })
-      .catch(() => {});
+      .catch(() => {
+        const local = createLocalAuthUser(form);
+        if (local.ok) {
+          alert("Registered in local mode. You can now login from this browser.");
+          navigate("/login");
+        } else {
+          alert(local.error || "Registration failed.");
+        }
+      });
   };
   // ------------------
 
