@@ -5,5 +5,5 @@
 export const API_BASE =
   process.env.REACT_APP_API_URL ||
   (process.env.NODE_ENV === "production"
-    ? "https://inventory-api.onrender.com/api"
+    ? "https://inventory-api-fk6y.onrender.com/api"
     : "http://localhost:4000/api");
