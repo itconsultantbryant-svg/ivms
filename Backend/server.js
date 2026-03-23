@@ -1,5 +1,6 @@
 const express = require("express");
 const { main, User, Product, Role, UserRole, RolePermission } = require("./models");
+const { Op } = require("sequelize");
 const productRoute = require("./router/product");
 const storeRoute = require("./router/store");
 const purchaseRoute = require("./router/purchase");
@@ -84,10 +85,19 @@ app.use("/roles", roleRoute);
 
 let userAuthCheck = null;
 
-app.post("/api/login", async (req, res) => {
+const normalizeEmail = (email) => String(email || "").trim().toLowerCase();
+
+const loginHandler = async (req, res) => {
   try {
+    const email = normalizeEmail(req.body.email);
+    const password = String(req.body.password || "");
+    if (!email || !password) return res.status(400).json({ error: "Email and password are required" });
+
     const user = await User.findOne({
-      where: { email: req.body.email, password: req.body.password },
+      where: {
+        [Op.or]: [{ email }, { email: req.body.email }],
+        password,
+      },
     });
     if (user) {
       const u = user.get({ plain: true });
@@ -101,27 +111,12 @@ app.post("/api/login", async (req, res) => {
     console.error(error);
     res.status(500).json({ error: error.message || "Server error" });
   }
-});
+};
+
+app.post("/api/login", loginHandler);
 
 // Compatibility route: allow POST `/login` (without `/api` prefix).
-app.post("/login", async (req, res) => {
-  try {
-    const user = await User.findOne({
-      where: { email: req.body.email, password: req.body.password },
-    });
-    if (user) {
-      const u = user.get({ plain: true });
-      res.json({ ...u, _id: u.id });
-      userAuthCheck = u;
-    } else {
-      userAuthCheck = null;
-      res.status(401).json({ error: "Invalid credentials" });
-    }
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: error.message || "Server error" });
-  }
-});
+app.post("/login", loginHandler);
 
 app.get("/api/login", (req, res) => {
   if (!userAuthCheck) return res.status(401).json(null);
@@ -134,12 +129,12 @@ app.get("/login", (req, res) => {
   res.json({ ...userAuthCheck, _id: userAuthCheck.id });
 });
 
-app.post("/api/register", async (req, res) => {
+const registerHandler = async (req, res) => {
   try {
     const user = await User.create({
       firstName: req.body.firstName,
       lastName: req.body.lastName,
-      email: req.body.email,
+      email: normalizeEmail(req.body.email),
       password: req.body.password,
       phoneNumber: req.body.phoneNumber || null,
       imageUrl: req.body.imageUrl || null,
@@ -148,28 +143,72 @@ app.post("/api/register", async (req, res) => {
     res.status(200).json({ ...u, _id: u.id });
   } catch (err) {
     console.error("Signup:", err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+app.post("/api/register", registerHandler);
+
+// Compatibility route: allow POST `/register` (without `/api` prefix).
+app.post("/register", registerHandler);
+
+app.get("/api/users/:userID", async (req, res) => {
+  try {
+    const userID = parseInt(req.params.userID, 10);
+    if (!userID) return res.status(400).json({ error: "Invalid userID" });
+    const user = await User.findByPk(userID, { attributes: { exclude: ["password"] } });
+    if (!user) return res.status(404).json({ error: "User not found" });
+    const u = user.get({ plain: true });
+    res.json({ ...u, _id: u.id });
+  } catch (err) {
+    console.error("GET /api/users/:userID:", err.message);
     res.status(500).json({ error: err.message });
   }
 });
 
-// Compatibility route: allow POST `/register` (without `/api` prefix).
-app.post("/register", async (req, res) => {
+app.get("/users/:userID", async (req, res) => {
   try {
-    const user = await User.create({
-      firstName: req.body.firstName,
-      lastName: req.body.lastName,
-      email: req.body.email,
-      password: req.body.password,
-      phoneNumber: req.body.phoneNumber || null,
-      imageUrl: req.body.imageUrl || null,
-    });
+    const userID = parseInt(req.params.userID, 10);
+    if (!userID) return res.status(400).json({ error: "Invalid userID" });
+    const user = await User.findByPk(userID, { attributes: { exclude: ["password"] } });
+    if (!user) return res.status(404).json({ error: "User not found" });
     const u = user.get({ plain: true });
-    res.status(200).json({ ...u, _id: u.id });
+    res.json({ ...u, _id: u.id });
   } catch (err) {
-    console.error("Signup:", err);
+    console.error("GET /users/:userID:", err.message);
     res.status(500).json({ error: err.message });
   }
 });
+
+const updateUserProfileHandler = async (req, res) => {
+  try {
+    const userID = parseInt(req.params.userID, 10);
+    if (!userID) return res.status(400).json({ error: "Invalid userID" });
+    const user = await User.findByPk(userID);
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const payload = {};
+    if (req.body.firstName !== undefined) payload.firstName = String(req.body.firstName || "").trim();
+    if (req.body.lastName !== undefined) payload.lastName = String(req.body.lastName || "").trim();
+    if (req.body.email !== undefined) payload.email = normalizeEmail(req.body.email);
+    if (req.body.phoneNumber !== undefined) payload.phoneNumber = req.body.phoneNumber || null;
+    if (req.body.imageUrl !== undefined) payload.imageUrl = req.body.imageUrl || null;
+    if (req.body.password !== undefined && String(req.body.password).trim() !== "") {
+      payload.password = String(req.body.password);
+    }
+
+    await user.update(payload);
+    const updated = await User.findByPk(userID, { attributes: { exclude: ["password"] } });
+    const u = updated.get({ plain: true });
+    res.json({ ...u, _id: u.id });
+  } catch (err) {
+    console.error("PUT /api/users/:userID/profile:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+app.put("/api/users/:userID/profile", updateUserProfileHandler);
+app.put("/users/:userID/profile", updateUserProfileHandler);
 
 app.get("/api/users", async (req, res) => {
   try {

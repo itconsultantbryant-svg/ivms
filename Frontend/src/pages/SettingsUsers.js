@@ -24,6 +24,37 @@ export default function SettingsUsers() {
   const [createForm, setCreateForm] = useState(defaultCreateForm);
   const [createSubmitting, setCreateSubmitting] = useState(false);
   const [createError, setCreateError] = useState("");
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileMessage, setProfileMessage] = useState("");
+  const [profileForm, setProfileForm] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phoneNumber: "",
+    imageUrl: "",
+    password: "",
+    confirmPassword: "",
+  });
+
+  const currentUserID = authContext?.user ? Number(authContext.user) : null;
+
+  const uploadProfileImage = async (image) => {
+    const data = new FormData();
+    data.append("file", image);
+    data.append("upload_preset", "inventoryapp");
+    try {
+      const res = await fetch("https://api.cloudinary.com/v1_1/ddhayhptm/image/upload", {
+        method: "POST",
+        body: data,
+      });
+      const body = await res.json();
+      setProfileForm((prev) => ({ ...prev, imageUrl: body.url || "" }));
+      setProfileMessage("Profile image uploaded.");
+    } catch (_) {
+      setProfileMessage("Image upload failed.");
+    }
+  };
 
   const fetchUsers = () => {
     setLoading(true);
@@ -37,6 +68,30 @@ export default function SettingsUsers() {
   useEffect(() => {
     fetchUsers();
   }, [liveTick]);
+
+  useEffect(() => {
+    if (!currentUserID) {
+      setProfileLoading(false);
+      return;
+    }
+    setProfileLoading(true);
+    fetch(`${API}/users/${currentUserID}`)
+      .then((r) => r.json())
+      .then((data) => {
+        setProfileForm((prev) => ({
+          ...prev,
+          firstName: data?.firstName ?? "",
+          lastName: data?.lastName ?? "",
+          email: data?.email ?? "",
+          phoneNumber: data?.phoneNumber ?? "",
+          imageUrl: data?.imageUrl ?? "",
+          password: "",
+          confirmPassword: "",
+        }));
+      })
+      .catch(() => {})
+      .finally(() => setProfileLoading(false));
+  }, [currentUserID, liveTick]);
 
   useEffect(() => {
     if (!authContext?.user) return;
@@ -165,9 +220,120 @@ export default function SettingsUsers() {
       });
   };
 
+  const onProfileFieldChange = (e) => {
+    const { name, value } = e.target;
+    setProfileForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const saveProfile = (e) => {
+    e.preventDefault();
+    if (!currentUserID) return;
+    setProfileMessage("");
+    if (profileForm.password && profileForm.password !== profileForm.confirmPassword) {
+      setProfileMessage("Passwords do not match.");
+      return;
+    }
+    setProfileSaving(true);
+    const payload = {
+      firstName: profileForm.firstName.trim(),
+      lastName: profileForm.lastName.trim(),
+      email: profileForm.email.trim(),
+      phoneNumber: profileForm.phoneNumber.trim(),
+      imageUrl: profileForm.imageUrl.trim(),
+    };
+    if (profileForm.password.trim()) payload.password = profileForm.password;
+
+    fetch(`${API}/users/${currentUserID}/profile`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    })
+      .then((r) => r.json().then((data) => ({ ok: r.ok, data })))
+      .then(({ ok, data }) => {
+        if (!ok) {
+          setProfileMessage(data?.error || "Failed to save profile.");
+          return;
+        }
+        setProfileForm((prev) => ({ ...prev, password: "", confirmPassword: "" }));
+        // Keep local storage user in sync after profile updates.
+        const current = JSON.parse(localStorage.getItem("user") || "{}");
+        localStorage.setItem("user", JSON.stringify({ ...current, ...data }));
+        setProfileMessage("Profile updated successfully.");
+        fetchUsers();
+      })
+      .catch(() => setProfileMessage("Failed to save profile."))
+      .finally(() => setProfileSaving(false));
+  };
+
   return (
     <div className="p-4 lg:p-6">
       <div className="mx-auto max-w-5xl">
+        <div className="rounded-2xl border border-gray-200 bg-gradient-to-br from-white to-sky-50 p-6 shadow-sm mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-5">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900">Admin Profile</h2>
+              <p className="text-sm text-gray-600 mt-1">Update admin name, email, password, and profile image.</p>
+            </div>
+            <div className="h-16 w-16 rounded-full overflow-hidden border border-gray-200 bg-white shadow-sm">
+              {profileForm.imageUrl ? (
+                <img src={profileForm.imageUrl} alt="Profile" className="h-full w-full object-cover" />
+              ) : (
+                <div className="h-full w-full flex items-center justify-center text-gray-400 text-xs">No image</div>
+              )}
+            </div>
+          </div>
+          {profileMessage && (
+            <p className={`mb-4 text-sm ${profileMessage.toLowerCase().includes("failed") || profileMessage.toLowerCase().includes("not") ? "text-red-600" : "text-green-700"}`}>
+              {profileMessage}
+            </p>
+          )}
+          {profileLoading ? (
+            <div className="text-sm text-gray-500">Loading profile...</div>
+          ) : (
+            <form onSubmit={saveProfile} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+                <input name="firstName" value={profileForm.firstName} onChange={onProfileFieldChange} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-sky-500 focus:ring-1 focus:ring-sky-500" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                <input name="lastName" value={profileForm.lastName} onChange={onProfileFieldChange} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-sky-500 focus:ring-1 focus:ring-sky-500" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <input type="email" name="email" value={profileForm.email} onChange={onProfileFieldChange} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-sky-500 focus:ring-1 focus:ring-sky-500" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                <input name="phoneNumber" value={profileForm.phoneNumber} onChange={onProfileFieldChange} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-sky-500 focus:ring-1 focus:ring-sky-500" />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Profile Image URL</label>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input name="imageUrl" value={profileForm.imageUrl} onChange={onProfileFieldChange} className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-sky-500 focus:ring-1 focus:ring-sky-500" placeholder="https://..." />
+                  <label className="inline-flex cursor-pointer items-center justify-center rounded-lg border border-sky-200 bg-white px-3 py-2 text-sm font-medium text-sky-700 hover:bg-sky-50">
+                    Upload image
+                    <input type="file" className="hidden" accept=".png,.jpg,.jpeg" onChange={(e) => e.target.files?.[0] && uploadProfileImage(e.target.files[0])} />
+                  </label>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+                <input type="password" name="password" value={profileForm.password} onChange={onProfileFieldChange} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-sky-500 focus:ring-1 focus:ring-sky-500" placeholder="Leave blank to keep current" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
+                <input type="password" name="confirmPassword" value={profileForm.confirmPassword} onChange={onProfileFieldChange} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-sky-500 focus:ring-1 focus:ring-sky-500" placeholder="Repeat new password" />
+              </div>
+              <div className="sm:col-span-2 flex justify-end">
+                <button type="submit" disabled={profileSaving} className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-700 disabled:opacity-60">
+                  {profileSaving ? "Saving..." : "Save Admin Profile"}
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+
         <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-xl font-bold text-gray-900">Users</h1>
