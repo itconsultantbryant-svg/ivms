@@ -1,18 +1,29 @@
 const { Product, Purchase, Sales } = require("../models");
 const { Op } = require("sequelize");
 
+const MAX_INT = 2147483647;
+
 const addProduct = async (req, res) => {
   try {
+    const userID = parseInt(req.body.userId, 10);
+    const name = String(req.body.name || "").trim();
+    const manufacturer = String(req.body.manufacturer || "").trim();
+    if (!userID || userID < 1 || userID > MAX_INT) {
+      return res.status(400).json({ error: "Invalid userId (must be a valid database user id)" });
+    }
+    if (!name || !manufacturer) {
+      return res.status(400).json({ error: "name and manufacturer are required" });
+    }
     const product = await Product.create({
-      userID: req.body.userId,
-      name: req.body.name,
-      manufacturer: req.body.manufacturer,
+      userID,
+      name,
+      manufacturer,
       stock: 0,
       description: req.body.description || null,
     });
     res.status(200).json(product);
   } catch (err) {
-    res.status(402).json({ error: err.message });
+    res.status(500).json({ error: err.message });
   }
 };
 
@@ -59,7 +70,7 @@ const updateSelectedProduct = async (req, res) => {
     });
     res.json(product);
   } catch (err) {
-    res.status(402).json({ error: err.message });
+    res.status(500).json({ error: err.message });
   }
 };
 

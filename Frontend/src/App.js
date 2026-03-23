@@ -35,6 +35,7 @@ import SettingsUsers from "./pages/SettingsUsers";
 
 import { API_BASE } from "./api";
 import { useLiveRefresh } from "./hooks/useLiveRefresh";
+import { normalizeStoredUserId } from "./sessionUserId";
 
 const App = () => {
   const liveTick = useLiveRefresh();
@@ -47,14 +48,16 @@ const App = () => {
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
-        let id = parsed._id ?? parsed.id;
-        // Local fallback users may have non-backend IDs; normalize to admin ID
-        // to avoid repeated 404s for routes like /users/:id/*.
-        if (parsed?.source === "local-fallback" && Number(id) > 9999999) {
-          id = 1;
-          localStorage.setItem("user", JSON.stringify({ ...parsed, _id: 1, id: 1 }));
+        const rawId = parsed._id ?? parsed.id;
+        const safe = normalizeStoredUserId(rawId);
+        if (safe == null) {
+          setUser("");
+        } else {
+          if (safe !== Number(rawId)) {
+            localStorage.setItem("user", JSON.stringify({ ...parsed, _id: safe, id: safe }));
+          }
+          setUser(String(safe));
         }
-        if (id != null) setUser(String(id));
       } catch (_) {
         setUser("");
       }
@@ -83,7 +86,8 @@ const App = () => {
   }, [user, liveTick]);
 
   const signin = (newUser, callback) => {
-    setUser(newUser);
+    const safe = normalizeStoredUserId(newUser);
+    setUser(safe != null ? String(safe) : "");
     callback();
   };
 

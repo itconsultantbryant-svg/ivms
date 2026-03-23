@@ -3,6 +3,7 @@ import { Dialog, Transition } from "@headlessui/react";
 import { PlusIcon } from "@heroicons/react/24/outline";
 import AuthContext from "../AuthContext";
 import { API_BASE } from "../api";
+import { normalizeStoredUserId } from "../sessionUserId";
 
 export default function AddProduct({
   addProductModalSetting,
@@ -23,19 +24,26 @@ export default function AddProduct({
   };
 
   const addProduct = () => {
+    const userId = normalizeStoredUserId(authContext.user) ?? 1;
+    const payload = { ...product, userId };
     fetch(`${API_BASE}/product/add`, {
       method: "POST",
       headers: {
         "Content-type": "application/json",
       },
-      body: JSON.stringify(product),
+      body: JSON.stringify(payload),
     })
-      .then((result) => {
+      .then(async (res) => {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          alert(data?.error || `Could not add product (${res.status})`);
+          return;
+        }
         alert("Product ADDED");
         handlePageUpdate();
         addProductModalSetting();
       })
-      .catch(() => {});
+      .catch(() => alert("Network error while adding product."));
   };
 
   return (

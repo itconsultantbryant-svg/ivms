@@ -4,6 +4,7 @@ import AuthContext from "../AuthContext";
 
 import { API_BASE as API } from "../api";
 import { useLiveRefresh } from "../hooks/useLiveRefresh";
+import { normalizeStoredUserId } from "../sessionUserId";
 
 function CategoryModal({ category, onClose, onSave }) {
   const [name, setName] = useState(category?.name ?? "");
@@ -59,17 +60,22 @@ export default function Categories() {
 
   const handleAdd = (body) => {
     if (!authContext.user) return;
+    const uid = normalizeStoredUserId(authContext.user) ?? 1;
     fetch(`${API}/categories/add`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userID: Number(authContext.user), ...body }),
+      body: JSON.stringify({ userID: uid, ...body }),
     })
-      .then((r) => r.json())
-      .then(() => {
+      .then(async (r) => {
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) {
+          alert(data?.error || `Could not add category (${r.status})`);
+          return;
+        }
         setShowModal(false);
         fetchList();
       })
-      .catch(() => {});
+      .catch(() => alert("Network error while adding category."));
   };
 
   const handleUpdate = (body) => {

@@ -1,14 +1,20 @@
 const { Category } = require("../models");
 
+const MAX_INT = 2147483647;
+
 const add = async (req, res) => {
   try {
     const userID = parseInt(req.body.userID, 10);
     const name = String(req.body.name || "").trim();
-    if (!userID || !name) return res.status(400).json({ error: "userID and name required" });
+    if (!userID || userID < 1 || userID > MAX_INT || !name) {
+      return res.status(400).json({
+        error: "userID and name are required (userID must fit a database integer and reference an existing user)",
+      });
+    }
     const row = await Category.create({ userID, name });
     res.status(200).json({ ...row.get({ plain: true }), _id: row.id });
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res.status(500).json({ error: err.message });
   }
 };
 
