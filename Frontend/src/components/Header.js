@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Bars3Icon } from "@heroicons/react/24/outline";
 import { Menu } from "@headlessui/react";
 import AuthContext from "../AuthContext";
+import { BRAND_NAME, BRAND_LOGO_SRC } from "../branding";
 
 const routeTitles = {
   "/": "Dashboard",
@@ -56,8 +57,9 @@ export default function Header({ onMenuClick }) {
         >
           <Bars3Icon className="h-6 w-6" />
         </button>
-        <Link to="/" className="flex items-center gap-2 rounded bg-sky-700/50 px-3 py-1.5">
-          <span className="font-bold text-white">Inventory</span>
+        <Link to="/" className="flex items-center gap-2 rounded bg-sky-700/50 px-2 py-1.5 pr-3">
+          <img src={BRAND_LOGO_SRC} alt="" className="h-8 w-8 object-contain" />
+          <span className="font-bold text-white">{BRAND_NAME}</span>
         </Link>
       </div>
       <div className="flex items-center gap-4">

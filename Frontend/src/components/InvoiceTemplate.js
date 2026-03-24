@@ -1,4 +1,5 @@
 import React from "react";
+import BrandHeader from "./BrandHeader";
 import { formatMoney, formatDate } from "./PrintableDocument";
 
 export default function InvoiceTemplate({ sale, lines, saleDate: saleDateProp, storeName: storeNameProp, productName = "", storeName = "" }) {
@@ -8,7 +9,7 @@ export default function InvoiceTemplate({ sale, lines, saleDate: saleDateProp, s
     const total = lines.reduce((s, l) => s + (Number(l.lineTotal) || 0), 0);
     return (
       <div>
-        <h2 className="mb-2 text-lg font-bold">INVOICE</h2>
+        <BrandHeader subtitle="INVOICE" />
         {store ? <p className="text-sm text-gray-600">Store: {store}</p> : null}
         <table className="mt-4 w-full text-sm">
           <thead>
@@ -53,7 +54,7 @@ export default function InvoiceTemplate({ sale, lines, saleDate: saleDateProp, s
 
   return (
     <div>
-      <h2 className="mb-2 text-lg font-bold">INVOICE</h2>
+      <BrandHeader subtitle="INVOICE" />
       <p className="text-sm text-gray-600">Invoice # {id}</p>
       <table className="mt-4 w-full text-sm">
         <thead>

@@ -1,5 +1,21 @@
 import React, { useRef } from "react";
 
+/** Resolve img src to absolute URLs so print/download windows (about:blank) still load assets. */
+function absolutizePrintHtml(html) {
+  const wrap = document.createElement("div");
+  wrap.innerHTML = html;
+  wrap.querySelectorAll("img").forEach((img) => {
+    const raw = img.getAttribute("src");
+    if (!raw) return;
+    try {
+      img.setAttribute("src", new URL(raw, window.location.href).href);
+    } catch (_) {
+      /* keep as-is */
+    }
+  });
+  return wrap.innerHTML;
+}
+
 export default function PrintableDocument({ title, children, onClose }) {
   const printRef = useRef(null);
 
@@ -9,8 +25,12 @@ export default function PrintableDocument({ title, children, onClose }) {
     const prevTitle = document.title;
     document.title = title || "Document";
     const printWindow = window.open("", "_blank");
-    const style = "body{font-family:system-ui,sans-serif;padding:24px;} table{width:100%;border-collapse:collapse;} th,td{border:1px solid #ddd;padding:8px 12px;} th{background:#f5f5f5;} .text-right{text-align:right;}";
-    printWindow.document.write("<html><head><title>" + document.title + "</title><style>" + style + "</style></head><body>" + content.innerHTML + "</body></html>");
+    const bodyHtml = absolutizePrintHtml(content.innerHTML);
+    const style =
+      "body{font-family:system-ui,sans-serif;padding:24px;} table{width:100%;border-collapse:collapse;} th,td{border:1px solid #ddd;padding:8px 12px;} th{background:#f5f5f5;} .text-right{text-align:right;}" +
+      " .brand-header{display:flex;flex-wrap:wrap;align-items:center;gap:12px;border-bottom:1px solid #e5e7eb;padding-bottom:16px;margin-bottom:16px;}" +
+      " .brand-header img{height:56px;width:56px;object-fit:contain;flex-shrink:0;}";
+    printWindow.document.write("<html><head><title>" + document.title + "</title><style>" + style + "</style></head><body>" + bodyHtml + "</body></html>");
     printWindow.document.close();
     printWindow.focus();
     printWindow.print();
@@ -22,7 +42,17 @@ export default function PrintableDocument({ title, children, onClose }) {
     const content = printRef.current;
     if (!content) return;
     const t = title || "document";
-    const html = "<!DOCTYPE html><html><head><title>" + t + "</title></head><body>" + content.innerHTML + "</body></html>";
+    const bodyHtml = absolutizePrintHtml(content.innerHTML);
+    const html =
+      "<!DOCTYPE html><html><head><title>" +
+      t +
+      "</title><style>" +
+      "body{font-family:system-ui,sans-serif;padding:24px;} table{width:100%;border-collapse:collapse;} th,td{border:1px solid #ddd;padding:8px 12px;} th{background:#f5f5f5;} .text-right{text-align:right;}" +
+      " .brand-header{display:flex;flex-wrap:wrap;align-items:center;gap:12px;border-bottom:1px solid #e5e7eb;padding-bottom:16px;margin-bottom:16px;}" +
+      " .brand-header img{height:56px;width:56px;object-fit:contain;flex-shrink:0;}" +
+      "</style></head><body>" +
+      bodyHtml +
+      "</body></html>";
     const blob = new Blob([html], { type: "text/html" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");

@@ -1,6 +1,7 @@
 import React, { useState, useContext } from "react";
 import { Link, useLocation } from "react-router-dom";
 import AuthContext from "../AuthContext";
+import { BRAND_NAME } from "../branding";
 import {
   ChartBarIcon,
   ShoppingCartIcon,
@@ -197,7 +198,7 @@ function SideMenu({ mobileOpen, onCloseMobile }) {
         </div>
       </div>
       <div className="border-t border-gray-700 px-4 py-3 text-xs text-gray-500">
-        Powered by Inventory · Version 1.0
+        {BRAND_NAME} · Version 1.0
       </div>
     </div>
     </>

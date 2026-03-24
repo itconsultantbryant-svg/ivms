@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import Chart from "react-apexcharts";
 import AuthContext from "../AuthContext";
 import PrintableDocument from "../components/PrintableDocument";
+import BrandHeader from "../components/BrandHeader";
 
 import { API_BASE } from "../api";
 import { useLiveRefresh } from "../hooks/useLiveRefresh";
@@ -324,7 +325,7 @@ function FinanceDashboard() {
         <p className="text-sm text-gray-500 mb-3">Print or download this report.</p>
         <PrintableDocument title="Finance-Report">
           <div>
-            <h2 className="text-lg font-bold mb-4">Finance Report</h2>
+            <BrandHeader subtitle="Finance Report" />
             <p className="text-sm text-gray-600 mb-4">Generated {lastUpdated ? lastUpdated.toLocaleString() : ""}</p>
             <table className="w-full text-sm border-collapse border border-gray-300">
               <thead><tr><th className="border border-gray-300 p-2 text-left">Metric</th><th className="border border-gray-300 p-2 text-right">Value</th></tr></thead>

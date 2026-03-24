@@ -2,6 +2,7 @@ import React, { useContext, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import AuthContext from "../AuthContext";
 import PrintableDocument from "../components/PrintableDocument";
+import BrandHeader from "../components/BrandHeader";
 
 import { API_BASE as API } from "../api";
 import { useLiveRefresh } from "../hooks/useLiveRefresh";
@@ -66,7 +67,7 @@ export default function ReportsSales() {
             <h2 className="font-semibold text-gray-900">Reports</h2>
             <PrintableDocument title="Sales-Report">
               <div className="p-4">
-                <h2 className="text-lg font-bold mb-2">Sales Report</h2>
+                <BrandHeader subtitle="Sales Report" />
                 <p className="text-sm text-gray-600 mb-4">Generated {new Date().toLocaleString()}</p>
                 <table className="w-full text-sm border-collapse border border-gray-300">
                   <thead>

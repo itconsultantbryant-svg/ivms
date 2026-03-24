@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import AuthContext from "../AuthContext";
 import { API_BASE } from "../api";
 import { loginWithLocalAuth } from "../authFallback";
+import { BRAND_NAME, BRAND_LOGO_SRC } from "../branding";
 
 function Login() {
   const [form, setForm] = useState({
@@ -82,13 +83,10 @@ function Login() {
         </div>
         <div className="w-full max-w-md space-y-8 p-10 rounded-lg">
           <div>
-            <img
-              className="mx-auto h-12 w-auto"
-              src={require("../assets/logo.png")}
-              alt="Your Company"
-            />
-            <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900">
-              Signin to your account
+            <img className="mx-auto h-12 w-auto" src={BRAND_LOGO_SRC} alt="" />
+            <p className="mt-2 text-center text-lg font-semibold tracking-tight text-gray-900">{BRAND_NAME}</p>
+            <h2 className="mt-4 text-center text-3xl font-bold tracking-tight text-gray-900">
+              Sign in to your account
             </h2>
           </div>
           <form className="mt-8 space-y-6" onSubmit={handleSubmit}>

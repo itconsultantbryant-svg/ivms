@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import UploadImage from "../components/UploadImage";
 import { API_BASE } from "../api";
 import { createLocalAuthUser } from "../authFallback";
+import { BRAND_NAME, BRAND_LOGO_SRC } from "../branding";
 
 function Register() {
   const [form, setForm] = useState({
@@ -85,12 +86,9 @@ function Register() {
       <div className="grid grid-cols-1 sm:grid-cols-2 h-screen  items-center place-items-center">
         <div className="w-full max-w-md space-y-8  p-10 rounded-lg">
           <div>
-            <img
-              className="mx-auto h-12 w-auto"
-              src={require("../assets/logo.png")}
-              alt="Your Company"
-            />
-            <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900">
+            <img className="mx-auto h-12 w-auto" src={BRAND_LOGO_SRC} alt="" />
+            <p className="mt-2 text-center text-lg font-semibold tracking-tight text-gray-900">{BRAND_NAME}</p>
+            <h2 className="mt-4 text-center text-3xl font-bold tracking-tight text-gray-900">
               Register your account
             </h2>
           </div>

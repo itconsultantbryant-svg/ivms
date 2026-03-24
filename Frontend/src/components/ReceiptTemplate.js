@@ -1,4 +1,5 @@
 import React from "react";
+import BrandHeader from "./BrandHeader";
 import { formatMoney, formatDate } from "./PrintableDocument";
 
 export default function ReceiptTemplate({ purchase, productName }) {
@@ -10,7 +11,7 @@ export default function ReceiptTemplate({ purchase, productName }) {
 
   return (
     <div>
-      <h2 className="text-lg font-bold mb-2">PURCHASE RECEIPT</h2>
+      <BrandHeader subtitle="PURCHASE RECEIPT" />
       <p className="text-sm text-gray-600 mb-4">Receipt # {id}</p>
       <table className="w-full text-sm">
         <thead>
