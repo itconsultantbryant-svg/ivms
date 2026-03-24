@@ -17,12 +17,14 @@ import {
   ChevronRightIcon,
   BuildingStorefrontIcon,
   ClipboardDocumentListIcon,
+  QrCodeIcon,
 } from "@heroicons/react/24/outline";
 
 const mainNav = [
   { to: "/", label: "Dashboard", icon: ChartBarIcon, permission: "dashboard" },
   { to: "/finance", label: "Finance", icon: ChartPieIcon, permission: "finance" },
   { to: "/sales", label: "Sales", icon: ShoppingCartIcon, permission: "sales" },
+  { to: "/checkout", label: "Checkout (scan)", icon: QrCodeIcon, permission: "sales" },
   { to: "/invoices", label: "Invoices", icon: DocumentTextIcon, permission: "invoices" },
   { to: "/receipts", label: "Receipts", icon: ClipboardDocumentListIcon, permission: "receipts" },
   { to: "/customers", label: "Customers", icon: UserGroupIcon, permission: "customers" },

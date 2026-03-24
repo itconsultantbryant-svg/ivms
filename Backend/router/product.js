@@ -5,6 +5,9 @@ const product = require("../controller/product");
 // Add Product
 app.post("/add", product.addProduct);
 
+// Lookup by barcode / QR payload (same string stored on product)
+app.get("/barcode", product.findByBarcode);
+
 // Get All Products
 app.get("/get/:userId", product.getAllProducts);
 

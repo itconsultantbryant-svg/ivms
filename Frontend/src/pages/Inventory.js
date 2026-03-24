@@ -4,6 +4,7 @@ import UpdateProduct from "../components/UpdateProduct";
 import AuthContext from "../AuthContext";
 import { API_BASE } from "../api";
 import { emitLiveRefresh, useLiveRefresh } from "../hooks/useLiveRefresh";
+import { normalizeStoredUserId } from "../sessionUserId";
 
 function Inventory() {
   const liveTick = useLiveRefresh();
@@ -51,7 +52,8 @@ function Inventory() {
   // Fetching all stores data
   const fetchStoresData = () => {
     if (!authContext.user) return;
-    fetch(`${API_BASE}/store/get/${authContext.user}`)
+    const uid = normalizeStoredUserId(authContext.user) ?? 1;
+    fetch(`${API_BASE}/store/get/${uid}`)
       .then((response) => response.json())
       .then((data) => setAllStores(Array.isArray(data) ? data : []))
       .catch(() => setAllStores([]));
@@ -198,8 +200,14 @@ function Inventory() {
               <span className="font-semibold text-red-600 text-base">Low Stock</span>
               <div className="flex gap-8">
                 <div className="flex flex-col">
-                  <span className="font-semibold text-gray-600 text-base">{products.filter((p) => (p.stock ?? 0) > 0 && (p.stock ?? 0) < 10).length}</span>
-                  <span className="font-thin text-gray-400 text-xs">Low (&lt;10)</span>
+                  <span className="font-semibold text-gray-600 text-base">
+                    {products.filter((p) => {
+                      const s = p.stock ?? 0;
+                      const thr = p.Category?.lowStockThreshold ?? 5;
+                      return s > 0 && s <= thr;
+                    }).length}
+                  </span>
+                  <span className="font-thin text-gray-400 text-xs">Low (per category)</span>
                 </div>
                 <div className="flex flex-col">
                   <span className="font-semibold text-gray-600 text-base">{products.filter((p) => (p.stock ?? 0) <= 0).length}</span>
@@ -230,7 +238,10 @@ function Inventory() {
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Product Details</h3>
               <dl className="space-y-2 text-sm">
                 <div><dt className="text-gray-500">Name</dt><dd className="font-medium text-gray-900">{viewProduct.name}</dd></div>
+                <div><dt className="text-gray-500">Category</dt><dd className="text-gray-900">{viewProduct.Category?.name ?? "—"}</dd></div>
                 <div><dt className="text-gray-500">Manufacturer</dt><dd className="text-gray-900">{viewProduct.manufacturer ?? "—"}</dd></div>
+                <div><dt className="text-gray-500">Barcode</dt><dd className="text-gray-900">{viewProduct.barcode ?? "—"}</dd></div>
+                <div><dt className="text-gray-500">Unit price</dt><dd className="text-gray-900">{viewProduct.unitPrice != null ? "$" + Number(viewProduct.unitPrice).toFixed(2) : "—"}</dd></div>
                 <div><dt className="text-gray-500">Stock</dt><dd className="text-gray-900">{viewProduct.stock ?? 0}</dd></div>
                 <div><dt className="text-gray-500">Description</dt><dd className="text-gray-900">{viewProduct.description ?? "—"}</dd></div>
                 <div><dt className="text-gray-500">Availability</dt><dd className="text-gray-900">{(viewProduct.stock ?? 0) > 0 ? "In Stock" : "Not in Stock"}</dd></div>
@@ -292,13 +303,28 @@ function Inventory() {
 
             <tbody className="divide-y divide-gray-200">
               {products.map((element, index) => {
+                const thr = element.Category?.lowStockThreshold ?? 5;
+                const s = element.stock ?? 0;
+                const status =
+                  s <= 0 ? "Out" : s <= thr ? "Low" : "OK";
                 return (
                   <tr key={element._id ?? element.id ?? index}>
                     <td className="whitespace-nowrap px-4 py-2  text-gray-900">
                       {element.name}
                     </td>
                     <td className="whitespace-nowrap px-4 py-2 text-gray-700">
+                      {element.Category?.name ?? "—"}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-2 text-gray-700">
                       {element.manufacturer}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-2 text-gray-700">
+                      {element.barcode ?? "—"}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-2 text-right text-gray-700">
+                      {element.unitPrice != null
+                        ? "$" + Number(element.unitPrice).toFixed(2)
+                        : "—"}
                     </td>
                     <td className="whitespace-nowrap px-4 py-2 text-gray-700">
                       {element.stock}
@@ -307,7 +333,17 @@ function Inventory() {
                       {element.description}
                     </td>
                     <td className="whitespace-nowrap px-4 py-2 text-gray-700">
-                      {element.stock > 0 ? "In Stock" : "Not in Stock"}
+                      <span
+                        className={
+                          status === "Out"
+                            ? "text-red-600"
+                            : status === "Low"
+                              ? "text-amber-700"
+                              : "text-green-700"
+                        }
+                      >
+                        {status === "Out" ? "Out of stock" : status === "Low" ? "Low stock" : "In stock"}
+                      </span>
                     </td>
                     <td className="whitespace-nowrap px-4 py-2 text-gray-700">
                       <span

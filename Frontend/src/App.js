@@ -32,8 +32,10 @@ import SettingsTax from "./pages/SettingsTax";
 import SettingsUnits from "./pages/SettingsUnits";
 import SettingsCompanyProfile from "./pages/SettingsCompanyProfile";
 import SettingsUsers from "./pages/SettingsUsers";
+import Checkout from "./pages/Checkout";
 
 import { API_BASE } from "./api";
+import { fetchWithRetry } from "./apiFetch";
 import { useLiveRefresh } from "./hooks/useLiveRefresh";
 import { normalizeStoredUserId } from "./sessionUserId";
 
@@ -74,7 +76,7 @@ const App = () => {
       return;
     }
     const fetchPerms = () => {
-      fetch(`${API_BASE}/users/${user}/permissions`)
+      fetchWithRetry(`${API_BASE}/users/${user}/permissions`)
         .then((r) => r.json())
         .then((data) => setPermissions(data.modules))
         .catch(() => setPermissions(null));
@@ -132,6 +134,7 @@ const App = () => {
             <Route path="/inventory" element={<Inventory />} />
             <Route path="/purchase-details" element={<PurchaseDetails />} />
             <Route path="/sales" element={<Sales />} />
+            <Route path="/checkout" element={<Checkout />} />
             <Route path="/invoices" element={<Invoices />} />
             <Route path="/receipts" element={<Receipts />} />
             <Route path="/manage-store" element={<Store />} />

@@ -67,6 +67,9 @@ Expense.belongsTo(User, { foreignKey: "userID" });
 User.hasMany(Category, { foreignKey: "userID" });
 Category.belongsTo(User, { foreignKey: "userID" });
 
+Category.hasMany(Product, { foreignKey: "categoryID" });
+Product.belongsTo(Category, { foreignKey: "categoryID" });
+
 User.hasMany(Wastage, { foreignKey: "userID" });
 Wastage.belongsTo(User, { foreignKey: "userID" });
 Wastage.belongsTo(Product, { foreignKey: "productID" });
@@ -83,7 +86,8 @@ async function main() {
   try {
     await sequelize.authenticate();
     console.log("Database connected.");
-    await sequelize.sync();
+    // Set DB_SYNC_ALTER=0 on Render if you manage schema with migrations only.
+    await sequelize.sync({ alter: process.env.DB_SYNC_ALTER !== "0" });
     console.log("Tables synced.");
   } catch (err) {
     console.error("Database error:", err.message);

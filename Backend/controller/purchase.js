@@ -6,7 +6,6 @@ const addPurchase = async (req, res) => {
     const userID = parseInt(req.body.userID, 10);
     const productID = parseInt(req.body.productID, 10);
     const quantityPurchased = parseInt(req.body.quantityPurchased, 10);
-    const totalPurchaseAmount = parseFloat(req.body.totalPurchaseAmount) || 0;
     const purchaseDate = req.body.purchaseDate || "";
 
     if (!userID || !productID || !purchaseDate) {
@@ -16,12 +15,22 @@ const addPurchase = async (req, res) => {
       return res.status(400).json({ error: "Quantity must be at least 1" });
     }
 
+    const parsedTotal = parseFloat(req.body.totalPurchaseAmount);
+    const unitPrice = parseFloat(req.body.unitPrice);
+    const computedTotal = Number.isFinite(unitPrice) ? unitPrice * quantityPurchased : null;
+    const finalTotal =
+      Number.isFinite(parsedTotal) && parsedTotal > 0
+        ? parsedTotal
+        : computedTotal != null && Number.isFinite(computedTotal)
+          ? computedTotal
+          : 0;
+
     const row = await Purchase.create({
       userID,
       productID,
       quantityPurchased,
       purchaseDate,
-      totalPurchaseAmount,
+      totalPurchaseAmount: Number(Number(finalTotal).toFixed(2)),
     });
     await purchaseStock(productID, quantityPurchased);
     res.status(200).json(row);

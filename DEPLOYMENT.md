@@ -32,6 +32,7 @@ This app has a **Node/Express backend** and a **React (CRA) frontend**. On Rende
      - `DATABASE_URL` = (from the database’s **Internal Database URL**)
    - `NODE_ENV` = `production`
    - Optional: `FRONTEND_URL` = your frontend URL (e.g. `https://your-frontend.onrender.com`) for CORS.
+   - Schema updates: the backend uses `sequelize.sync({ alter: true })` by default so new columns (product barcode, category thresholds, etc.) are applied automatically. If you prefer to manage migrations yourself, set **`DB_SYNC_ALTER=0`** on the API service (then run SQL migrations manually).
 
 Local dev with SQLite (no Postgres):
 

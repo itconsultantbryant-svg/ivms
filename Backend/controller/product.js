@@ -1,4 +1,4 @@
-const { Product, Purchase, Sales } = require("../models");
+const { Product, Purchase, Sales, Category } = require("../models");
 const { Op } = require("sequelize");
 
 const MAX_INT = 2147483647;
@@ -14,14 +14,25 @@ const addProduct = async (req, res) => {
     if (!name || !manufacturer) {
       return res.status(400).json({ error: "name and manufacturer are required" });
     }
+    const stock = Math.max(0, parseInt(req.body.stock ?? req.body.initialStock ?? 0, 10) || 0);
+    const categoryID =
+      req.body.categoryID === undefined || req.body.categoryID === "" || req.body.categoryID === null
+        ? null
+        : parseInt(req.body.categoryID, 10);
+    const barcode = req.body.barcode != null && String(req.body.barcode).trim() !== "" ? String(req.body.barcode).trim() : null;
+    const unitPrice = parseFloat(req.body.unitPrice);
     const product = await Product.create({
       userID,
       name,
       manufacturer,
-      stock: 0,
+      categoryID: categoryID && !Number.isNaN(categoryID) ? categoryID : null,
+      barcode,
+      unitPrice: Number.isFinite(unitPrice) ? unitPrice : 0,
+      stock,
       description: req.body.description || null,
     });
-    res.status(200).json(product);
+    const u = product.get({ plain: true });
+    res.status(200).json({ ...u, _id: product.id });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -34,10 +45,33 @@ const getAllProducts = async (req, res) => {
     const list = await Product.findAll({
       where: { userID },
       order: [["id", "DESC"]],
+      include: [{ model: Category, as: "Category", attributes: ["id", "name", "lowStockThreshold", "targetStock"], required: false }],
     });
-    res.json(list.map((p) => ({ ...p.get({ plain: true }), _id: p.id })));
+    res.json(
+      list.map((p) => {
+        const plain = p.get({ plain: true });
+        return { ...plain, _id: p.id };
+      })
+    );
   } catch (err) {
     console.error("Product getAllProducts:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+const findByBarcode = async (req, res) => {
+  try {
+    const userID = parseInt(req.query.userId, 10);
+    const code = String(req.query.code || "").trim();
+    if (!userID || !code) return res.status(400).json({ error: "userId and code query params are required" });
+    const product = await Product.findOne({
+      where: { userID, barcode: code },
+      include: [{ model: Category, as: "Category", attributes: ["id", "name", "lowStockThreshold", "targetStock"], required: false }],
+    });
+    if (!product) return res.status(404).json({ error: "Product not found" });
+    const u = product.get({ plain: true });
+    res.json({ ...u, _id: product.id });
+  } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
@@ -63,12 +97,33 @@ const updateSelectedProduct = async (req, res) => {
     if (!productID) return res.status(400).json({ error: "productID required" });
     const product = await Product.findByPk(productID);
     if (!product) return res.status(404).json({ error: "Product not found" });
-    await product.update({
-      name: req.body.name !== undefined ? req.body.name : product.name,
-      manufacturer: req.body.manufacturer !== undefined ? req.body.manufacturer : product.manufacturer,
+    const payload = {
+      name: req.body.name !== undefined ? String(req.body.name).trim() : product.name,
+      manufacturer: req.body.manufacturer !== undefined ? String(req.body.manufacturer).trim() : product.manufacturer,
       description: req.body.description !== undefined ? req.body.description : product.description,
+    };
+    if (req.body.categoryID !== undefined) {
+      payload.categoryID =
+        req.body.categoryID === null || req.body.categoryID === ""
+          ? null
+          : parseInt(req.body.categoryID, 10);
+    }
+    if (req.body.barcode !== undefined) {
+      payload.barcode = req.body.barcode != null && String(req.body.barcode).trim() !== "" ? String(req.body.barcode).trim() : null;
+    }
+    if (req.body.unitPrice !== undefined) {
+      const up = parseFloat(req.body.unitPrice);
+      payload.unitPrice = Number.isFinite(up) ? up : product.unitPrice;
+    }
+    if (req.body.stock !== undefined) {
+      payload.stock = Math.max(0, parseInt(req.body.stock, 10) || 0);
+    }
+    await product.update(payload);
+    const updated = await Product.findByPk(productID, {
+      include: [{ model: Category, as: "Category", attributes: ["id", "name", "lowStockThreshold", "targetStock"], required: false }],
     });
-    res.json(product);
+    const u = updated.get({ plain: true });
+    res.json({ ...u, _id: updated.id });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -77,10 +132,16 @@ const updateSelectedProduct = async (req, res) => {
 const searchProduct = async (req, res) => {
   const term = req.query.searchTerm || "";
   try {
-    const list = await Product.findAll({ where: { name: { [Op.iLike]: "%" + term + "%" } } });
+    const list = await Product.findAll({
+      where: { name: { [Op.iLike]: "%" + term + "%" } },
+      include: [{ model: Category, as: "Category", attributes: ["id", "name"], required: false }],
+    });
     res.json(list.map((p) => ({ ...p.get({ plain: true }), _id: p.id })));
   } catch (e) {
-    const list = await Product.findAll({ where: { name: { [Op.like]: "%" + term + "%" } } });
+    const list = await Product.findAll({
+      where: { name: { [Op.like]: "%" + term + "%" } },
+      include: [{ model: Category, as: "Category", attributes: ["id", "name"], required: false }],
+    });
     res.json(list.map((p) => ({ ...p.get({ plain: true }), _id: p.id })));
   }
 };
@@ -91,4 +152,5 @@ module.exports = {
   deleteSelectedProduct,
   updateSelectedProduct,
   searchProduct,
+  findByBarcode,
 };
