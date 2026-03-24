@@ -1,5 +1,10 @@
 const { Product, Purchase, Sales, Category } = require("../models");
 const { Op } = require("sequelize");
+const {
+  barcodeLookupVariants,
+  normalizeBarcodeForStorage,
+  barcodesFuzzyMatch,
+} = require("../utils/barcodeNormalize");
 
 const MAX_INT = 2147483647;
 
@@ -64,11 +69,28 @@ const findByBarcode = async (req, res) => {
     const userID = parseInt(req.query.userId, 10);
     const code = String(req.query.code || "").trim();
     if (!userID || !code) return res.status(400).json({ error: "userId and code query params are required" });
-    const product = await Product.findOne({
-      where: { userID, barcode: code },
+
+    const variants = barcodeLookupVariants(code);
+    if (!variants.length) return res.status(400).json({ error: "Invalid code" });
+
+    let product = await Product.findOne({
+      where: { userID, barcode: { [Op.in]: variants } },
       include: [{ model: Category, as: "Category", attributes: ["id", "name", "lowStockThreshold", "targetStock"], required: false }],
     });
-    if (!product) return res.status(404).json({ error: "Product not found" });
+
+    // Legacy rows or alternate formats: compare fuzzy against all barcoded products for this user
+    if (!product) {
+      const rows = await Product.findAll({
+        where: {
+          userID,
+          [Op.and]: [{ barcode: { [Op.ne]: null } }, { barcode: { [Op.ne]: "" } }],
+        },
+        include: [{ model: Category, as: "Category", attributes: ["id", "name", "lowStockThreshold", "targetStock"], required: false }],
+      });
+      product = rows.find((p) => barcodesFuzzyMatch(p.barcode, code)) || null;
+    }
+
+    if (!product) return res.status(404).json({ error: "Product not found for this barcode" });
     const u = product.get({ plain: true });
     res.json({ ...u, _id: product.id });
   } catch (err) {
@@ -109,7 +131,10 @@ const updateSelectedProduct = async (req, res) => {
           : parseInt(req.body.categoryID, 10);
     }
     if (req.body.barcode !== undefined) {
-      payload.barcode = req.body.barcode != null && String(req.body.barcode).trim() !== "" ? String(req.body.barcode).trim() : null;
+      payload.barcode =
+        req.body.barcode != null && String(req.body.barcode).trim() !== ""
+          ? normalizeBarcodeForStorage(req.body.barcode)
+          : null;
     }
     if (req.body.unitPrice !== undefined) {
       const up = parseFloat(req.body.unitPrice);

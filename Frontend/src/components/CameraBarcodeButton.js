@@ -1,5 +1,22 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
+/** Broad format list; browser ignores unsupported entries. */
+const FORMATS = [
+  "qr_code",
+  "aztec",
+  "code_128",
+  "code_39",
+  "code_93",
+  "codabar",
+  "data_matrix",
+  "ean_13",
+  "ean_8",
+  "itf",
+  "pdf417",
+  "upc_a",
+  "upc_e",
+];
+
 export function CameraBarcodeButton({ onCode, label = "Scan with camera" }) {
   const [on, setOn] = useState(false);
   const videoRef = useRef(null);
@@ -18,44 +35,68 @@ export function CameraBarcodeButton({ onCode, label = "Scan with camera" }) {
     if (!on || !supported) return;
     const BD = window.BarcodeDetector;
     let cancelled = false;
-    let raf = 0;
+    let intervalId = 0;
+    let detector;
+
+    try {
+      detector = new BD({ formats: FORMATS });
+    } catch {
+      try {
+        detector = new BD();
+      } catch {
+        alert("Barcode detection is not supported in this browser.");
+        setOn(false);
+        return;
+      }
+    }
+
     (async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "environment" },
+          video: {
+            facingMode: "environment",
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+          },
         });
         if (cancelled) {
           stream.getTracks().forEach((t) => t.stop());
           return;
         }
         const v = videoRef.current;
-        if (v) v.srcObject = stream;
-        const detector = new BD({
-          formats: ["qr_code", "code_128", "ean_13", "ean_8", "code_39", "upc_a", "upc_e"],
-        });
-        const loop = async () => {
-          if (cancelled || !videoRef.current) return;
+        if (v) {
+          v.srcObject = stream;
+          await new Promise((resolve, reject) => {
+            v.onloadedmetadata = () => {
+              v.play().then(resolve).catch(reject);
+            };
+          });
+        }
+        const tick = async () => {
+          if (cancelled || !videoRef.current || videoRef.current.readyState < 2) return;
           try {
             const codes = await detector.detect(videoRef.current);
             if (codes.length) {
-              onCode(codes[0].rawValue);
-              setOn(false);
-              return;
+              const raw = codes[0].rawValue;
+              if (raw) {
+                onCode(String(raw).trim());
+                setOn(false);
+              }
             }
           } catch (_) {
             /* frame not ready */
           }
-          raf = requestAnimationFrame(loop);
         };
-        raf = requestAnimationFrame(loop);
+        intervalId = window.setInterval(tick, 120);
       } catch {
-        alert("Camera not available. Use manual barcode entry or a USB scanner.");
+        alert("Camera not available. Use manual entry or a USB scanner.");
         setOn(false);
       }
     })();
+
     return () => {
       cancelled = true;
-      cancelAnimationFrame(raf);
+      if (intervalId) clearInterval(intervalId);
       stop();
     };
   }, [on, supported, onCode, stop]);
@@ -69,6 +110,9 @@ export function CameraBarcodeButton({ onCode, label = "Scan with camera" }) {
       </button>
       {on && (
         <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/85 p-4">
+          <p className="mb-2 max-w-md text-center text-sm text-white">
+            Hold the barcode flat in the frame; keep steady until it reads.
+          </p>
           <video ref={videoRef} autoPlay playsInline muted className="max-h-[70vh] w-full max-w-lg rounded-lg bg-black" />
           <button
             type="button"

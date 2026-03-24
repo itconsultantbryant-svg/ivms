@@ -42,16 +42,16 @@ export default function Checkout() {
     const c = String(code || "").trim();
     if (!c) return;
     fetch(`${API_BASE}/product/barcode?userId=${uid}&code=${encodeURIComponent(c)}`)
-      .then((r) => r.json())
-      .then((p) => {
-        if (p.error) {
-          alert(p.error);
+      .then(async (r) => {
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) {
+          alert(data.error || `No product for this code (${r.status}). Check the saved barcode matches the label.`);
           return;
         }
-        addLine(p);
+        addLine(data);
         setScan("");
       })
-      .catch(() => alert("Product not found for this barcode."));
+      .catch(() => alert("Network error — try again."));
   };
 
   const addLine = (p) => {
