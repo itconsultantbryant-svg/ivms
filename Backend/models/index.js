@@ -86,8 +86,14 @@ async function main() {
   try {
     await sequelize.authenticate();
     console.log("Database connected.");
-    // Set DB_SYNC_ALTER=0 on Render if you manage schema with migrations only.
-    await sequelize.sync({ alter: process.env.DB_SYNC_ALTER !== "0" });
+    const isProduction = process.env.NODE_ENV === "production";
+    // Safer defaults: do not auto-alter schema on production databases.
+    // Enable only when explicitly requested with DB_SYNC_ALTER=1.
+    const shouldAlter =
+      process.env.DB_SYNC_ALTER != null
+        ? process.env.DB_SYNC_ALTER === "1"
+        : !isProduction;
+    await sequelize.sync({ alter: shouldAlter });
     console.log("Tables synced.");
   } catch (err) {
     console.error("Database error:", err.message);

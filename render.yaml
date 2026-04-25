@@ -1,5 +1,5 @@
-# Render Blueprint – deploy Backend (Node) + PostgreSQL + Frontend (static).
-# After first deploy: set REACT_APP_API_URL on the frontend service to your backend URL + /api (e.g. https://inventory-api.onrender.com/api).
+# Render Blueprint – deploy Backend (Node) + PostgreSQL.
+# Frontend should be deployed on Vercel.
 
 databases:
   - name: inventory-db
@@ -20,18 +20,11 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: DB_SYNC_ALTER
+        value: "0"
       - key: DATABASE_URL
         fromDatabase:
           name: inventory-db
           property: connectionString
       - key: FRONTEND_URL
-        sync: false
-  - type: web
-    name: inventory-frontend
-    runtime: static
-    rootDir: Frontend
-    buildCommand: npm install && npm run build
-    staticPublishPath: build
-    envVars:
-      - key: REACT_APP_API_URL
         sync: false

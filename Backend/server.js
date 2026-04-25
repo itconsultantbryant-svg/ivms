@@ -19,10 +19,26 @@ const cors = require("cors");
 const app = express();
 const PORT = process.env.PORT || 4000;
 
+const configuredOrigins = String(process.env.FRONTEND_URL || "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
 const corsOptions = {
-  // Allow Render frontend to call this backend cross-origin.
-  // Using `true` reflects the request Origin and avoids env mismatch issues.
-  origin: true,
+  // Keep local tools/postman working (no origin) and allow explicit frontend origins.
+  // If FRONTEND_URL is empty, fallback to permissive behavior for easier first deploy.
+  origin(origin, callback) {
+    if (!origin) return callback(null, true);
+    if (configuredOrigins.length === 0) return callback(null, true);
+    if (configuredOrigins.includes(origin)) return callback(null, true);
+    try {
+      const host = new URL(origin).hostname;
+      if (host.endsWith(".vercel.app")) return callback(null, true);
+    } catch (_) {
+      // Ignore malformed Origin and continue to rejection below.
+    }
+    return callback(new Error("Not allowed by CORS"));
+  },
   credentials: true,
 };
 app.use(cors(corsOptions));
